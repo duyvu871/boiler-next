@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import 'app/styles/globals.css';
@@ -5,7 +6,7 @@ import 'app/styles/globals.css';
 import MantineProvider from 'app/providers/mantine-provider';
 import ThemeProvider from 'app/providers/theme-provider';
 import { SessionProvider } from 'app/providers/session-provider';
-import { Suspense } from 'react';
+import JotaiProvider from 'app/providers/jotai-provider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -26,7 +27,9 @@ export default function RootLayout({
         <ThemeProvider>
           <MantineProvider>
             <SessionProvider>
-              <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+              <JotaiProvider>
+                <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+              </JotaiProvider>
             </SessionProvider>
           </MantineProvider>
         </ThemeProvider>
