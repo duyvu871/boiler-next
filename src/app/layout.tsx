@@ -5,15 +5,16 @@ import 'app/styles/globals.css';
 // Providers
 import MantineProvider from 'app/providers/mantine-provider';
 import ThemeProvider from 'app/providers/theme-provider';
-import { SessionProvider } from 'app/providers/session-provider';
+import SessionProvider from 'app/providers/session-provider';
 import JotaiProvider from 'app/providers/jotai-provider';
+import QueryProvider from 'app/providers/query-client-provider';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Next.js 15 Starter Template',
+  title: 'Fitting Rooms Pro',
   description:
-    'A modern Next.js 15 starter template with NextAuth.js, TypeScript, and Tailwind CSS',
+    'A modern Fitting Rooms Pro for virtual fitting rooms and try-on to choose your clothes',
 };
 
 export default function RootLayout({
@@ -28,7 +29,9 @@ export default function RootLayout({
           <MantineProvider>
             <SessionProvider>
               <JotaiProvider>
-                <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+                <QueryProvider>
+                  <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+                </QueryProvider>
               </JotaiProvider>
             </SessionProvider>
           </MantineProvider>
