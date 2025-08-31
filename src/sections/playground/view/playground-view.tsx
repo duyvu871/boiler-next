@@ -20,7 +20,8 @@ import {
   setModelVisibleAtom,
   setSingleShapeKeyValueAtom,
   zoomValueAtom,
-  showPerfAtom
+  showPerfAtom,
+  shapeKeysAtom
 } from 'app/store/playground'
 import { useEffect } from 'react'
 import {
@@ -39,6 +40,10 @@ import {
   Title,
   Accordion,
 } from '@mantine/core'
+import { showNotification } from '@mantine/notifications'
+import { PlaygroundConfigSchema, type PlaygroundConfig } from 'app/sections/playground/schema'
+import { applyImportedConfigAtom } from 'app/store/playground'
+import type { ShapeKeyEntry } from 'app/store/playground'
 
 // Mantine-based slider for a single 0..1 shape key group
 function SingleSlider({ label, keyName }: { label: string; keyName: string }) {
@@ -79,23 +84,27 @@ function ClothingSelector() {
   const setModelVisible = useSetAtom(setModelVisibleAtom)
 
   // Update visibility immediately on user action to avoid any perceived delay
-  const onChangeTop = (v: string) => {
-    setTop(v as any)
+  const onChangeTop = (v: 'none' | 'bodice' | 'shirt') => {
+    setTop(v)
     setModelVisible({ name: 'bodice', visible: v === 'bodice' })
     setModelVisible({ name: 'shirt', visible: v === 'shirt' })
   }
 
-  const onChangeBottom = (v: string) => {
-    setBottom(v as any)
+  const onChangeTopStr = (value: string) => onChangeTop(value as 'none' | 'bodice' | 'shirt')
+
+  const onChangeBottom = (v: 'none' | 'skirt') => {
+    setBottom(v)
     setModelVisible({ name: 'skirt', visible: v === 'skirt' })
   }
+
+  const onChangeBottomStr = (value: string) => onChangeBottom(value as 'none' | 'skirt')
 
   return (
     <ScrollArea style={{ height: '100%' }}>
       <Stack gap="md" p="md">
         <Paper withBorder p="sm" radius="md">
           <Title order={6}>Tops</Title>
-          <Radio.Group value={top} onChange={onChangeTop} mt="xs">
+          <Radio.Group value={top} onChange={onChangeTopStr} mt="xs">
             <Stack gap={6}>
               <Radio value="none" label="None" />
               <Radio value="bodice" label="Bodice" />
@@ -105,7 +114,7 @@ function ClothingSelector() {
         </Paper>
         <Paper withBorder p="sm" radius="md">
           <Title order={6}>Bottoms</Title>
-          <Radio.Group value={bottom} onChange={onChangeBottom} mt="xs">
+          <Radio.Group value={bottom} onChange={onChangeBottomStr} mt="xs">
             <Stack gap={6}>
               <Radio value="none" label="None" />
               <Radio value="skirt" label="Skirt" />
@@ -195,6 +204,74 @@ function PerfToggle() {
       </Group>
       <Text size="xs" c="dimmed" mt={6}>Adaptive DPR + Preload are enabled.</Text>
     </Paper>
+  )
+}
+
+function ExportImportControls() {
+  const setApply = useSetAtom(applyImportedConfigAtom)
+
+  const onExport = () => {
+    // Build export data from current store
+    const modelVisMap = useAtomValue(modelVisibilityAtom)
+    const skMap = useAtomValue(shapeKeysAtom)
+
+    const exportData: PlaygroundConfig = {
+      timestamp: new Date().toISOString(),
+      version: '1.0',
+      modelInfo: Object.entries(modelVisMap).map(([name, visible]) => ({ name, visible })),
+      shapeKeys: Object.fromEntries(Object.entries(skMap).map(([k, v]) => [k, (v as any)[0]?.mesh.morphTargetInfluences?.[(v as any)[0].index] ?? 0])),
+    }
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `avatar-shapekeys-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+
+    showNotification({ title: 'Exported', message: 'Config exported successfully', color: 'green' })
+  }
+
+  const onImport = (file: File | null) => {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const json = JSON.parse(String(reader.result))
+        const parsed = PlaygroundConfigSchema.safeParse(json)
+        if (!parsed.success) {
+          // zod returns an object with issues in parsed.error.issues
+          const details = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`)
+          showNotification({ title: 'Import failed', message: details.join('\n'), color: 'red' })
+          return
+        }
+        // Apply config
+        setApply({ config: parsed.data })
+        showNotification({ title: 'Imported', message: 'Config applied', color: 'green' })
+      } catch (err: any) {
+        showNotification({ title: 'Import failed', message: String(err.message ?? err), color: 'red' })
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  return (
+    <Group>
+      <Button size="xs" onClick={onExport}>Export</Button>
+      <input
+        id="import-config"
+        style={{ display: 'none' }}
+        type="file"
+        accept="application/json"
+        onChange={(e) => onImport(e.target.files ? e.target.files[0] : null)}
+      />
+      <label htmlFor="import-config">
+        <Button size="xs" variant="light" component="span">Import</Button>
+      </label>
+    </Group>
   )
 }
 

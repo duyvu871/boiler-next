@@ -4,7 +4,7 @@
 
 import { atom } from 'jotai'
 import type { Mesh } from 'three'
-import * as THREE from 'three'
+import type { PlaygroundConfig } from 'app/sections/playground/schema'
 
 // -----------------------------
 // Types
@@ -149,7 +149,7 @@ export const groupedShapeKeysAtom = atom<GroupedShapeKey[]>((get) => {
     groups.push({ kind: 'single', label: key, key, entries: all[key] })
   }
 
-  return groups.sort((a, b) => a.label.localeCompare((b as any).label))
+  return groups.sort((a, b) => a.label.localeCompare(b.label))
 })
 
 /** Categorize a shape key by name to route it to the right panel column */
@@ -249,6 +249,30 @@ export const setLoadingTextAtom = atom(null, (_get, set, text: string) => {
 export const setModelVisibleAtom = atom(null, (get, set, params: { name: string; visible: boolean }) => {
   const next = { ...get(modelVisibilityAtom), [params.name]: params.visible }
   set(modelVisibilityAtom, next)
+})
+
+/** Apply an imported config: set model visibility and shape key values */
+export const applyImportedConfigAtom = atom(null, (get, set, params: { config: PlaygroundConfig }) => {
+  const config = params.config
+  // Apply model visibility
+  if (Array.isArray(config.modelInfo)) {
+    const vis: Record<string, boolean> = { ...(get(modelVisibilityAtom) ?? {}) }
+    config.modelInfo.forEach((m) => (vis[m.name] = !!m.visible))
+    set(modelVisibilityAtom, vis)
+  }
+
+  // Apply shape keys: config.shapeKeys is name -> value
+  const sk = get(shapeKeysAtom)
+  if (config.shapeKeys && typeof config.shapeKeys === 'object') {
+    for (const [key, value] of Object.entries(config.shapeKeys)) {
+      const entries = sk[key]
+      if (entries) {
+        entries.forEach((e) => {
+          if (e.mesh.morphTargetInfluences) e.mesh.morphTargetInfluences[e.index] = Number(value)
+        })
+      }
+    }
+  }
 })
 
 
