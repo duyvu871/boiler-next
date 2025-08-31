@@ -1,15 +1,20 @@
 'use server';
 
-import { withServerActionErrorHandling, ValidationError, AuthenticationError, ConflictError, logAuth, logBusiness } from 'app/utils';
+import {
+  withServerActionErrorHandling,
+  ValidationError,
+  AuthenticationError,
+  ConflictError,
+  logAuth,
+  logBusiness,
+} from 'app/utils';
 import { LoginSchema, RegisterSchema, type LoginInput, type RegisterInput } from './schemas';
-import { PrismaClient, Role } from '@prisma/client';
+import db from 'app/lib/db';
+import { Role } from 'db/enums';
 import bcrypt from 'bcryptjs';
 // import { signIn } from '@/lib/auth'; // TODO: Implement NextAuth.js integration
 
-// Initialize Prisma client
-const prisma = new PrismaClient();
-
-// Enums (will be available after Prisma generates the client)
+// Enums (will be available after db generates the client)
 const UserStatus = {
   ACTIVE: 'ACTIVE',
   INACTIVE: 'INACTIVE',
@@ -35,8 +40,7 @@ async function verifyPassword(password: string, hashedPassword: string): Promise
  * Generate a secure random token
  */
 function generateToken(): string {
-  return Math.random().toString(36).substring(2, 15) + 
-         Math.random().toString(36).substring(2, 15);
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
 /**
@@ -47,9 +51,9 @@ const rawLoginAction = async (data: LoginInput) => {
   try {
     // Validate input data
     const validatedData = LoginSchema.parse(data);
-    
+
     // Find user by email
-    const user = await prisma.user.findUnique({
+    const user = await db.user.findUnique({
       where: { email: validatedData.email },
       select: {
         id: true,
@@ -116,7 +120,7 @@ const rawLoginAction = async (data: LoginInput) => {
     }
 
     // Update last login time
-    await prisma.user.update({
+    await db.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
     });
@@ -144,29 +148,29 @@ const rawLoginAction = async (data: LoginInput) => {
     if (error instanceof AuthenticationError || error instanceof ValidationError) {
       throw error;
     }
-    
+
     // Log unexpected errors and throw generic error
     console.error('Login error:', error);
     throw new AuthenticationError('An error occurred during login. Please try again.');
   } finally {
-    await prisma.$disconnect();
+    await db.$disconnect();
   }
 };
 
 /**
- * Register server action  
+ * Register server action
  * Handles user registration with validation and duplicate checking
  */
 const rawRegisterAction = async (data: RegisterInput) => {
   try {
     // Validate input data
     const validatedData = RegisterSchema.parse(data);
-    
+
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await db.user.findUnique({
       where: { email: validatedData.email },
     });
-    
+
     if (existingUser) {
       logAuth('REGISTER_FAILED', undefined, {
         email: validatedData.email,
@@ -174,12 +178,12 @@ const rawRegisterAction = async (data: RegisterInput) => {
       });
       throw new ConflictError('A user with this email address already exists');
     }
-    
+
     // Hash password
     const hashedPassword = await hashPassword(validatedData.password);
-    
+
     // Create user with default STUDENT role and PENDING_VERIFICATION status
-    const user = await prisma.user.create({
+    const user = await db.user.create({
       data: {
         name: validatedData.name,
         email: validatedData.email,
@@ -199,7 +203,7 @@ const rawRegisterAction = async (data: RegisterInput) => {
 
     // Create email verification token
     const verificationToken = generateToken();
-    await prisma.emailVerification.create({
+    await db.emailVerification.create({
       data: {
         email: user.email,
         token: verificationToken,
@@ -211,14 +215,14 @@ const rawRegisterAction = async (data: RegisterInput) => {
     // TODO: Send verification email
     console.log(`Email verification token for ${user.email}: ${verificationToken}`);
     console.log('TODO: Implement email sending service');
-    
+
     // Log successful registration
     logAuth('REGISTER_SUCCESS', user.id, {
       email: user.email,
       role: user.role,
       registrationMethod: 'credentials',
     });
-    
+
     // Log business event
     logBusiness('USER_REGISTERED', 'user', user.id, {
       email: user.email,
@@ -226,7 +230,7 @@ const rawRegisterAction = async (data: RegisterInput) => {
       registrationMethod: 'email',
       requiresVerification: true,
     });
-    
+
     return {
       user: {
         id: user.id,
@@ -243,12 +247,12 @@ const rawRegisterAction = async (data: RegisterInput) => {
     if (error instanceof ConflictError || error instanceof ValidationError) {
       throw error;
     }
-    
+
     // Log unexpected errors and throw generic error
     console.error('Registration error:', error);
     throw new ConflictError('An error occurred during registration. Please try again.');
   } finally {
-    await prisma.$disconnect();
+    await db.$disconnect();
   }
 };
 
@@ -262,25 +266,25 @@ const rawForgotPasswordAction = async (email: string) => {
     if (!email || !email.includes('@')) {
       throw new ValidationError('Please enter a valid email address');
     }
-    
+
     // Check if user exists (but don't reveal this information)
-    const user = await prisma.user.findUnique({
+    const user = await db.user.findUnique({
       where: { email: email.toLowerCase().trim() },
     });
-    
+
     if (user) {
       // Check if user has a password (not OAuth-only)
       if (user.password) {
         // Generate reset token
         const resetToken = generateToken();
-        
+
         // Delete any existing password reset tokens for this email
-        await prisma.passwordReset.deleteMany({
+        await db.passwordReset.deleteMany({
           where: { email: user.email },
         });
-        
+
         // Create new password reset token
-        await prisma.passwordReset.create({
+        await db.passwordReset.create({
           data: {
             email: user.email,
             token: resetToken,
@@ -288,13 +292,13 @@ const rawForgotPasswordAction = async (email: string) => {
             used: false,
           },
         });
-        
+
         // TODO: Send password reset email
         console.log(`Password reset token for ${user.email}: ${resetToken}`);
         console.log('TODO: Implement email sending service');
       }
     }
-    
+
     // Always return the same message for security (don't reveal if email exists)
     return {
       message: 'If an account with this email exists, you will receive a password reset link.',
@@ -304,12 +308,12 @@ const rawForgotPasswordAction = async (email: string) => {
     if (error instanceof ValidationError) {
       throw error;
     }
-    
+
     // Log unexpected errors and throw generic error
     console.error('Forgot password error:', error);
     throw new ValidationError('An error occurred. Please try again.');
   } finally {
-    await prisma.$disconnect();
+    await db.$disconnect();
   }
 };
 
@@ -323,75 +327,73 @@ const rawResetPasswordAction = async (token: string, newPassword: string) => {
     if (!token) {
       throw new ValidationError('Reset token is required');
     }
-    
+
     if (!newPassword || newPassword.length < 6) {
       throw new ValidationError('Password must be at least 6 characters long');
     }
-    
+
     // Find the password reset record
-    const resetRecord = await prisma.passwordReset.findUnique({
+    const resetRecord = await db.passwordReset.findUnique({
       where: { token },
     });
-    
+
     // Check if token exists and is valid
     if (!resetRecord || resetRecord.used) {
       throw new ValidationError('Invalid or expired reset token');
     }
-    
+
     // Check if token has expired
     if (resetRecord.expiresAt < new Date()) {
       throw new ValidationError('Reset token has expired. Please request a new one.');
     }
-    
+
     // Find the user
-    const user = await prisma.user.findUnique({
+    const user = await db.user.findUnique({
       where: { email: resetRecord.email },
     });
-    
+
     if (!user) {
       throw new ValidationError('User not found');
     }
-    
+
     // Hash new password
     const hashedPassword = await hashPassword(newPassword);
-    
+
     // Update user password and mark token as used (in a transaction)
-    await prisma.$transaction([
-      prisma.user.update({
+    await db.$transaction([
+      db.user.update({
         where: { email: resetRecord.email },
         data: { password: hashedPassword },
       }),
-      prisma.passwordReset.update({
+      db.passwordReset.update({
         where: { token },
         data: { used: true },
       }),
     ]);
-    
+
     // Clean up old/expired password reset tokens for this user
-    await prisma.passwordReset.deleteMany({
+    await db.passwordReset.deleteMany({
       where: {
         email: resetRecord.email,
-        OR: [
-          { used: true },
-          { expiresAt: { lt: new Date() } },
-        ],
+        OR: [{ used: true }, { expiresAt: { lt: new Date() } }],
       },
     });
-    
+
     return {
-      message: 'Your password has been reset successfully. You can now sign in with your new password.',
+      message:
+        'Your password has been reset successfully. You can now sign in with your new password.',
     };
   } catch (error) {
     // Re-throw known errors
     if (error instanceof ValidationError) {
       throw error;
     }
-    
+
     // Log unexpected errors and throw generic error
     console.error('Reset password error:', error);
     throw new ValidationError('An error occurred while resetting your password. Please try again.');
   } finally {
-    await prisma.$disconnect();
+    await db.$disconnect();
   }
 };
 
@@ -399,54 +401,58 @@ const rawResetPasswordAction = async (token: string, newPassword: string) => {
  * Change password server action (for authenticated users)
  * Handles password change with current password verification
  */
-const rawChangePasswordAction = async (userId: string, currentPassword: string, newPassword: string) => {
+const rawChangePasswordAction = async (
+  userId: string,
+  currentPassword: string,
+  newPassword: string
+) => {
   try {
     // Validate inputs
     if (!userId) {
       throw new AuthenticationError('You must be logged in to change password');
     }
-    
+
     if (!currentPassword) {
       throw new ValidationError('Current password is required');
     }
-    
+
     if (!newPassword || newPassword.length < 6) {
       throw new ValidationError('New password must be at least 6 characters long');
     }
-    
+
     if (currentPassword === newPassword) {
       throw new ValidationError('New password must be different from current password');
     }
-    
+
     // Find the user
-    const user = await prisma.user.findUnique({
+    const user = await db.user.findUnique({
       where: { id: userId },
     });
-    
+
     if (!user) {
       throw new AuthenticationError('User not found');
     }
-    
+
     // Check if user has a password (not OAuth-only user)
     if (!user.password) {
       throw new ValidationError('Cannot change password for OAuth-only accounts');
     }
-    
+
     // Verify current password
     const isValidPassword = await verifyPassword(currentPassword, user.password);
     if (!isValidPassword) {
       throw new ValidationError('Current password is incorrect');
     }
-    
+
     // Hash new password
     const hashedNewPassword = await hashPassword(newPassword);
-    
+
     // Update user password
-    await prisma.user.update({
+    await db.user.update({
       where: { id: userId },
       data: { password: hashedNewPassword },
     });
-    
+
     return {
       message: 'Your password has been changed successfully',
     };
@@ -455,12 +461,12 @@ const rawChangePasswordAction = async (userId: string, currentPassword: string, 
     if (error instanceof ValidationError || error instanceof AuthenticationError) {
       throw error;
     }
-    
+
     // Log unexpected errors and throw generic error
     console.error('Change password error:', error);
     throw new ValidationError('An error occurred while changing your password. Please try again.');
   } finally {
-    await prisma.$disconnect();
+    await db.$disconnect();
   }
 };
 
@@ -474,48 +480,45 @@ const rawVerifyEmailAction = async (token: string) => {
     if (!token) {
       throw new ValidationError('Verification token is required');
     }
-    
+
     // Find the email verification record
-    const verificationRecord = await prisma.emailVerification.findUnique({
+    const verificationRecord = await db.emailVerification.findUnique({
       where: { token },
     });
-    
+
     // Check if token exists and is valid
     if (!verificationRecord || verificationRecord.verified) {
       throw new ValidationError('Invalid or already used verification token');
     }
-    
+
     // Check if token has expired
     if (verificationRecord.expiresAt < new Date()) {
       throw new ValidationError('Verification token has expired. Please request a new one.');
     }
-    
+
     // Update user and mark verification as complete (in a transaction)
-    await prisma.$transaction([
-      prisma.user.update({
+    await db.$transaction([
+      db.user.update({
         where: { email: verificationRecord.email },
-        data: { 
+        data: {
           emailVerified: new Date(),
           status: UserStatus.ACTIVE, // Activate account upon email verification
         },
       }),
-      prisma.emailVerification.update({
+      db.emailVerification.update({
         where: { token },
         data: { verified: true },
       }),
     ]);
-    
+
     // Clean up old/expired verification tokens for this user
-    await prisma.emailVerification.deleteMany({
+    await db.emailVerification.deleteMany({
       where: {
         email: verificationRecord.email,
-        OR: [
-          { verified: true },
-          { expiresAt: { lt: new Date() } },
-        ],
+        OR: [{ verified: true }, { expiresAt: { lt: new Date() } }],
       },
     });
-    
+
     return {
       message: 'Your email has been verified successfully. You can now sign in to your account.',
     };
@@ -524,12 +527,12 @@ const rawVerifyEmailAction = async (token: string) => {
     if (error instanceof ValidationError) {
       throw error;
     }
-    
+
     // Log unexpected errors and throw generic error
     console.error('Email verification error:', error);
     throw new ValidationError('An error occurred while verifying your email. Please try again.');
   } finally {
-    await prisma.$disconnect();
+    await db.$disconnect();
   }
 };
 
@@ -551,7 +554,6 @@ export const changePasswordAction = withServerActionErrorHandling(rawChangePassw
 });
 
 export const verifyEmailAction = withServerActionErrorHandling(rawVerifyEmailAction);
-
 
 // Export utility functions for external use
 export { hashPassword, verifyPassword, generateToken };
