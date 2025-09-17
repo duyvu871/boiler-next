@@ -12,3 +12,7 @@
 @import 'tailwindcss';
 /* Tailwind typography */
 @plugin '@tailwindcss/typography';
+
+.canvas-background {
+  background: radial-gradient(ellipse at 50% 45%, #f4efe6 0%, #e6ebf2 55%, #cfd5dd 100%);
+}

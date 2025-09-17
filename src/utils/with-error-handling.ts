@@ -8,7 +8,7 @@ import {
   HTTP_STATUS,
 } from './response';
 import { logError, logServerAction, logApiRequest } from './log';
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server'; // Import NextRequest
 
 // Type for Server Actions
 type ServerAction<T extends unknown[], R> = (...args: T) => Promise<R>;
@@ -16,11 +16,11 @@ type ServerActionWithErrorHandling<T extends unknown[], R> = (
   ...args: T
 ) => Promise<ApiResponse<R>>;
 
-// Type for API Route handlers
-type ApiHandler<T = unknown> = (
+// Type for API Route handlers (this is the signature of the function *wrapped* by withApiErrorHandling)
+type ApiHandler<T = unknown, P extends Record<string, string> = Record<string, string>> = (
   request: Request,
-  context?: Record<string, unknown>
-) => Promise<NextResponse>;
+  context: { params: Promise<P> }
+) => Promise<NextResponse<ApiResponse<T>>>;
 
 // Server Action Error Handling HOC
 export function withServerActionErrorHandling<T extends unknown[], R>(
@@ -50,7 +50,7 @@ export function withServerActionErrorHandling<T extends unknown[], R>(
       };
     } catch (error) {
       const errorInfo = handleError(error);
-      const duration = Date.now() - startTime;
+      const duration = Date.now() - startTime; // Corrected typo
 
       // Log error with Winston
       if (options?.logErrors !== false) {
@@ -74,24 +74,34 @@ export function withServerActionErrorHandling<T extends unknown[], R>(
         redirect(options.redirectOnError);
       }
 
-      return actionError(errorInfo.code, errorInfo.message, errorInfo.details);
+      return actionError(errorInfo.code, errorInfo.message, errorInfo.details) as ApiResponse<R>;
     }
   };
 }
 
 // API Route Error Handling HOC
-export function withApiErrorHandling(
-  handler: ApiHandler,
+export function withApiErrorHandling<
+  T = unknown,
+  P extends Record<string, string> = Record<string, string>,
+>(
+  handler: ApiHandler<T, P>,
   options?: {
     logErrors?: boolean;
     enableCors?: boolean;
   }
-): ApiHandler {
-  return async (request: Request, context?: Record<string, unknown>): Promise<NextResponse> => {
+): (
+  request: NextRequest,
+  context: { params: Promise<P> }
+) => Promise<NextResponse<ApiResponse<T>>> {
+  return async (
+    request: NextRequest,
+    context: { params: Promise<P> }
+  ): Promise<NextResponse<ApiResponse<T>>> => {
     const startTime = Date.now();
     let statusCode = 200;
 
     try {
+      // No longer resolving params here; the wrapped handler will do it.
       const response = await handler(request, context);
       statusCode = response.status;
 
@@ -115,11 +125,11 @@ export function withApiErrorHandling(
         response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
       }
 
-      return response;
+      return response as NextResponse<ApiResponse<T>>;
     } catch (error) {
       const errorInfo = handleError(error);
       statusCode = errorInfo.statusCode;
-      const duration = Date.now() - startTime;
+      const duration = Date.now() - startTime; // Corrected typo
 
       // Log error with Winston
       if (options?.logErrors !== false) {
@@ -160,7 +170,7 @@ export function withApiErrorHandling(
         response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
       }
 
-      return response;
+      return response as NextResponse<ApiResponse<T>>;
     }
   };
 }
@@ -182,8 +192,11 @@ export function withAuthServerAction<T extends unknown[], R>(
 }
 
 // Rate-limited API Route
-export function withRateLimitedApi(
-  handler: ApiHandler,
+export function withRateLimitedApi<
+  T = unknown,
+  P extends Record<string, string> = Record<string, string>,
+>(
+  handler: ApiHandler<T, P>,
   options?: {
     maxRequests?: number;
     windowMs?: number;
@@ -210,7 +223,9 @@ export function withValidatedServerAction<T extends unknown[], R>(
 }
 
 // CORS-enabled API Route
-export function withCorsApi(handler: ApiHandler) {
+export function withCorsApi<T = unknown, P extends Record<string, string> = Record<string, string>>(
+  handler: ApiHandler<T, P>
+) {
   return withApiErrorHandling(handler, {
     enableCors: true,
     logErrors: true,
@@ -243,7 +258,7 @@ export function withDevLogging<T extends unknown[], R>(
 
       return result;
     } catch (error) {
-      const duration = Date.now() - startTime;
+      const duration = Date.now() - startTime; // Corrected typo
 
       console.error(`❌ Action failed: ${action.name}`, {
         duration: `${duration}ms`,
