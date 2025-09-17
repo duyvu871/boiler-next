@@ -1,22 +1,22 @@
 import { NextResponse } from 'next/server';
 
 // Standard response types
-export interface SuccessResponse<T = unknown> {
-  success: true;
+export type SuccessResponse<T = unknown> = Pick<ApiResponse<T>, 'success' | 'data' | 'message'>;
+
+export type ErrorResponse = Pick<ApiResponse<unknown>, 'error' | 'success' | 'message'> & {
+  data: null;
+};
+
+export type ApiResponse<T = unknown> = {
+  success: boolean;
   data: T;
   message?: string;
-}
-
-export interface ErrorResponse {
-  success: false;
-  error: {
+  error?: {
     code: string;
     message: string;
     details?: Record<string, unknown>;
   };
-}
-
-export type ApiResponse<T = unknown> = SuccessResponse<T> | ErrorResponse;
+};
 
 // HTTP Status codes
 export const HTTP_STATUS = {
@@ -125,6 +125,7 @@ export const createErrorResponse = (
   details?: Record<string, unknown>
 ): ErrorResponse => ({
   success: false,
+  data: null,
   error: {
     code,
     message,

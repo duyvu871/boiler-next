@@ -22,9 +22,12 @@ help:
 	@echo "  make prod-clean   - Stop and remove production containers/volumes"
 	@echo ""
 	@echo "Database:"
-	@echo "  make db-migrate   - Run database migrations"
-	@echo "  make db-seed      - Seed database with sample data"
-	@echo "  make db-reset     - Reset database (migrate + seed)"
+	@echo "  make db-migrate-dev - Run development database migrations"
+	@echo "  make db-migrate-prod - Run production database migrations"
+	@echo "  make db-seed-dev  - Seed development database with sample data"
+	@echo "  make db-reset-dev - Reset development database (migrate + seed)"
+	@echo "  make db-push-dev  - Push schema to development database (no migrations)"
+	@echo "  make db-push-prod - Push schema to production database (no migrations)"
 	@echo ""
 	@echo "Development Tools:"
 	@echo "  make install      - Install dependencies"
@@ -42,7 +45,7 @@ help:
 # Development Environment
 dev:
 	@echo "🚀 Starting development environment (Database + Redis)..."
-	docker-compose -f docker-compose.dev.yml up -d postgres-dev redis-dev
+	docker-compose -f docker-compose.dev.yml --env-file .env.local up -d postgres-dev redis-dev
 	@echo "✅ Development services started!"
 	@echo "   PostgreSQL: localhost:5432"
 	@echo "   Redis: localhost:6379"
@@ -50,7 +53,7 @@ dev:
 
 dev-full:
 	@echo "🚀 Starting development environment with management tools..."
-	docker-compose -f docker-compose.dev.yml --profile tools up -d
+	docker-compose -f docker-compose.dev.yml --profile tools --env-file .env.local up -d
 	@echo "✅ Development services with tools started!"
 	@echo "   PostgreSQL: localhost:5432"
 	@echo "   Redis: localhost:6379"
@@ -59,12 +62,12 @@ dev-full:
 
 dev-stop:
 	@echo "🛑 Stopping development environment..."
-	docker-compose -f docker-compose.dev.yml down
+	docker-compose -f docker-compose.dev.yml --env-file .env.local down
 	@echo "✅ Development environment stopped"
 
 dev-clean:
 	@echo "🧹 Cleaning development environment..."
-	docker-compose -f docker-compose.dev.yml down -v --remove-orphans
+	docker-compose -f docker-compose.dev.yml --env-file .env.local down -v --remove-orphans
 	docker volume prune -f
 	@echo "✅ Development environment cleaned"
 
@@ -76,19 +79,19 @@ build:
 
 prod:
 	@echo "🚀 Starting production environment..."
-	docker-compose up -d app postgres redis
+	docker-compose --env-file .env.production up -d app postgres redis
 	@echo "✅ Production environment started!"
 	@echo "   Application: http://localhost:3000"
 
 prod-proxy:
 	@echo "🚀 Starting production with Nginx proxy..."
-	docker-compose --profile proxy up -d
+	docker-compose --profile proxy --env-file .env.production up -d
 	@echo "✅ Production with proxy started!"
 	@echo "   Application: http://localhost (port 80)"
 
 prod-monitor:
 	@echo "🚀 Starting production with monitoring..."
-	docker-compose --profile monitoring up -d
+	docker-compose --profile monitoring --env-file .env.production up -d
 	@echo "✅ Production with monitoring started!"
 	@echo "   Application: http://localhost:3000"
 	@echo "   Prometheus: http://localhost:9090"
@@ -96,30 +99,45 @@ prod-monitor:
 
 prod-stop:
 	@echo "🛑 Stopping production environment..."
-	docker-compose down
+	docker-compose --env-file .env.production down
 	@echo "✅ Production environment stopped"
 
 prod-clean:
 	@echo "🧹 Cleaning production environment..."
-	docker-compose down -v --remove-orphans
+	docker-compose --env-file .env.production down -v --remove-orphans
 	docker volume prune -f
 	@echo "✅ Production environment cleaned"
 
 # Database Commands
-db-migrate:
-	@echo "📊 Running database migrations..."
-	npm run db:migrate
-	@echo "✅ Database migrations completed"
+db-migrate-dev:
+	@echo "📊 Running development database migrations..."
+	npm run migrate:dev
+	@echo "✅ Development database migrations completed"
 
-db-seed:
-	@echo "🌱 Seeding database..."
-	npm run db:seed
-	@echo "✅ Database seeded"
+db-migrate-prod:
+	@echo "📊 Running production database migrations..."
+	npm run migrate:deploy
+	@echo "✅ Production database migrations completed"
 
-db-reset:
-	@echo "🔄 Resetting database..."
-	npm run db:reset
-	@echo "✅ Database reset completed"
+db-seed-dev:
+	@echo "🌱 Seeding development database..."
+	npm run db:seed:dev
+	@echo "✅ Development database seeded"
+
+db-reset-dev:
+	@echo "🔄 Resetting development database..."
+	npm run db:reset:dev
+	@echo "✅ Development database reset completed"
+
+db-push-dev:
+	@echo "📊 Pushing schema to development database..."
+	npm run db:push:dev
+	@echo "✅ Development database push completed"
+
+db-push-prod:
+	@echo "📊 Pushing schema to production database..."
+	npm run db:push:prod
+	@echo "✅ Production database push completed"
 
 # Development Tools
 install:
@@ -150,27 +168,27 @@ type-check:
 # Logs
 logs:
 	@echo "📋 Viewing application logs..."
-	docker-compose logs -f app
+	docker-compose --env-file .env.production logs -f app
 
 logs-db:
 	@echo "📋 Viewing database logs..."
-	docker-compose -f docker-compose.dev.yml logs -f postgres-dev
+	docker-compose -f docker-compose.dev.yml --env-file .env.local logs -f postgres-dev
 
 logs-redis:
 	@echo "📋 Viewing Redis logs..."
-	docker-compose -f docker-compose.dev.yml logs -f redis-dev
+	docker-compose -f docker-compose.dev.yml --env-file .env.local logs -f redis-dev
 
 # Cleanup
 clean-all:
 	@echo "🧹 Cleaning all environments..."
-	docker-compose -f docker-compose.dev.yml down -v --remove-orphans || true
-	docker-compose down -v --remove-orphans || true
+	docker-compose -f docker-compose.dev.yml --env-file .env.local down -v --remove-orphans || true
+	docker-compose --env-file .env.production down -v --remove-orphans || true
 	docker system prune -f
 	docker volume prune -f
 	@echo "✅ All environments cleaned"
 
 # Quick development setup
-setup-dev: install dev db-migrate db-seed
+setup-dev: install dev db-migrate-dev db-seed-dev
 	@echo "🎉 Development environment setup completed!"
 	@echo "   Run 'npm run dev' to start the application"
 

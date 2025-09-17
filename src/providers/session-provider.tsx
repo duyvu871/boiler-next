@@ -11,7 +11,7 @@ interface SessionProviderProps {
 /**
  * NextAuth Session Provider wrapper
  */
-export function SessionProvider({ children, session }: SessionProviderProps) {
+export default function SessionProvider({ children, session }: SessionProviderProps) {
   return (
     <NextAuthSessionProvider
       session={session}

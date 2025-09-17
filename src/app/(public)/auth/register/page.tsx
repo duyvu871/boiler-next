@@ -14,25 +14,19 @@ export default function RegisterPage() {
   const handleRegister = async (data: RegisterInput) => {
     setIsLoading(true);
     setError(null);
-    
+
     const result = await registerAction(data);
-    
+
     if (result.success) {
       // Redirect to login with success message
       router.push('/auth/login?message=Registration successful! Please log in.');
     } else {
       // Display error message
-      setError(result.error.message);
+      setError(result.error?.message || 'An unexpected error occurred');
     }
-    
+
     setIsLoading(false);
   };
 
-  return (
-    <RegisterView 
-      onSubmit={handleRegister} 
-      isLoading={isLoading}
-      error={error}
-    />
-  );
+  return <RegisterView onSubmit={handleRegister} isLoading={isLoading} error={error} />;
 }

@@ -3,7 +3,7 @@
 subject="$(head -n1 "$1" | tr -d '\r')"
 
 # Allowed types
-types='feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert'
+types='feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert|update|merge'
 
 fail() {
   echo "❌ $1"
