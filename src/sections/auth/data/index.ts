@@ -26,9 +26,6 @@ export {
   resetPasswordAction,
   changePasswordAction,
   verifyEmailAction,
-  hashPassword,
-  verifyPassword,
-  generateToken,
 } from './action';
 
 // Export NextAuth redirect actions

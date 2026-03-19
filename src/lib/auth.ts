@@ -15,8 +15,8 @@ export const authOptions: NextAuthOptions = {
   // Session strategy - using JWT without adapter
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-    updateAge: 24 * 60 * 60, // 24 hours
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+    updateAge: 60 * 60, // 1 hour — refresh token more frequently
   },
 
   // Custom pages
@@ -31,9 +31,6 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: env.GOOGLE_CLIENT_ID!,
       clientSecret: env.GOOGLE_CLIENT_SECRET!,
-      // Allow dangerous email account linking
-      // Dangerous because it allows users to link their Google account to an existing account with a different email
-      allowDangerousEmailAccountLinking: true,
       // Profile callback - used to map Google profile data to our user model
       profile(profile) {
         return {
@@ -211,6 +208,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.status = user.status;
         token.emailVerified = user.emailVerified;
+        token.refreshedAt = Date.now();
         
         // Log the authentication method
         if (account?.provider) {
@@ -226,6 +224,27 @@ export const authOptions: NextAuthOptions = {
         token.name = session.name;
         token.email = session.email;
         token.picture = session.image;
+      }
+
+      // Periodic refresh: re-fetch user data from DB every hour
+      const REFRESH_INTERVAL = 60 * 60 * 1000; // 1 hour in ms
+      const lastRefreshed = (token.refreshedAt as number) || 0;
+      if (Date.now() - lastRefreshed > REFRESH_INTERVAL && token.id) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { role: true, status: true, emailVerified: true },
+          });
+          if (dbUser) {
+            token.role = dbUser.role;
+            token.status = dbUser.status;
+            token.emailVerified = dbUser.emailVerified;
+            token.refreshedAt = Date.now();
+          }
+        } catch (error) {
+          // Silently fail — use cached token data
+          console.error('JWT refresh from DB failed:', error);
+        }
       }
 
       return token;

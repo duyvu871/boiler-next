@@ -120,9 +120,14 @@ export function withApiErrorHandling<
 
       // Add CORS headers if enabled
       if (options?.enableCors) {
-        response.headers.set('Access-Control-Allow-Origin', '*');
-        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        const origin = request.headers.get('origin') || '';
+        const allowedOrigins = (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000').split(',');
+        if (allowedOrigins.includes(origin)) {
+          response.headers.set('Access-Control-Allow-Origin', origin);
+          response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+          response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+          response.headers.set('Access-Control-Allow-Credentials', 'true');
+        }
       }
 
       return response as NextResponse<ApiResponse<T>>;
@@ -165,9 +170,14 @@ export function withApiErrorHandling<
 
       // Add CORS headers if enabled
       if (options?.enableCors) {
-        response.headers.set('Access-Control-Allow-Origin', '*');
-        response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        const origin = request.headers.get('origin') || '';
+        const allowedOrigins = (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000').split(',');
+        if (allowedOrigins.includes(origin)) {
+          response.headers.set('Access-Control-Allow-Origin', origin);
+          response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+          response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+          response.headers.set('Access-Control-Allow-Credentials', 'true');
+        }
       }
 
       return response as NextResponse<ApiResponse<T>>;
@@ -191,6 +201,21 @@ export function withAuthServerAction<T extends unknown[], R>(
   });
 }
 
+// In-memory rate limiting store
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+// Cleanup stale entries every 5 minutes
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, value] of rateLimitStore) {
+      if (now > value.resetAt) {
+        rateLimitStore.delete(key);
+      }
+    }
+  }, 5 * 60 * 1000);
+}
+
 // Rate-limited API Route
 export function withRateLimitedApi<
   T = unknown,
@@ -202,8 +227,36 @@ export function withRateLimitedApi<
     windowMs?: number;
   }
 ) {
-  // This would integrate with your rate limiting logic
-  return withApiErrorHandling(handler, {
+  const maxRequests = options?.maxRequests ?? 100;
+  const windowMs = options?.windowMs ?? 15 * 60 * 1000; // 15 minutes
+
+  const rateLimitedHandler: ApiHandler<T, P> = async (request, context) => {
+    // Get client identifier from headers
+    const forwarded = request.headers.get('x-forwarded-for');
+    const realIp = request.headers.get('x-real-ip');
+    const clientIp = forwarded?.split(',')[0]?.trim() || realIp || 'unknown';
+
+    const now = Date.now();
+    const entry = rateLimitStore.get(clientIp);
+
+    if (entry && now < entry.resetAt) {
+      entry.count++;
+      if (entry.count > maxRequests) {
+        return apiError(
+          ERROR_CODES.RATE_LIMIT_EXCEEDED,
+          'Too many requests. Please try again later.',
+          429,
+          { retryAfter: Math.ceil((entry.resetAt - now) / 1000) }
+        ) as NextResponse<ApiResponse<T>>;
+      }
+    } else {
+      rateLimitStore.set(clientIp, { count: 1, resetAt: now + windowMs });
+    }
+
+    return handler(request, context);
+  };
+
+  return withApiErrorHandling(rateLimitedHandler, {
     logErrors: true,
     enableCors: false,
   });
