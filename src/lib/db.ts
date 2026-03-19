@@ -1,40 +1,24 @@
 import { Prisma, PrismaClient } from 'db/client';
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const clientOptions = {
-  log:
-    process.env.NODE_ENV === 'development'
-      ? [
-          {
-            emit: 'event',
-            level: 'query',
-          },
-          {
-            emit: 'stdout',
-            level: 'error',
-          },
-          {
-            emit: 'stdout',
-            level: 'info',
-          },
-          {
-            emit: 'stdout',
-            level: 'warn',
-          },
-        ]
-      : [
-          {
-            emit: 'stdout',
-            level: 'error',
-          },
-          {
-            emit: 'stdout',
-            level: 'warn',
-          },
-        ],
-} as Prisma.PrismaClientOptions;
+const logOptions: Prisma.LogLevel[] | Prisma.LogDefinition[] = process.env.NODE_ENV === 'development'
+  ? [
+    { emit: 'event', level: 'query' },
+    { emit: 'stdout', level: 'error' },
+    { emit: 'stdout', level: 'info' },
+    { emit: 'stdout', level: 'warn' },
+  ]
+  : [
+    { emit: 'stdout', level: 'error' },
+    { emit: 'stdout', level: 'warn' },
+  ];
 
 const prismaClientSingleton = (): PrismaClient => {
-  return new PrismaClient(clientOptions);
+  const adapter = new PrismaPg({
+    connectionString: process.env.DATABASE_URL,
+  });
+  return new PrismaClient({ adapter, log: logOptions });
 };
 
 declare global {
