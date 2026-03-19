@@ -195,7 +195,9 @@ export const handleError = (
 
     return {
       code: ERROR_CODES.INTERNAL_ERROR,
-      message: error.message || 'Internal server error',
+      message: process.env.NODE_ENV === 'development' 
+        ? (error.message || 'Internal server error')
+        : 'Internal server error',
       statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
       details: process.env.NODE_ENV === 'development' ? { stack: error.stack } : undefined,
     };

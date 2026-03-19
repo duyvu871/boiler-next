@@ -555,5 +555,6 @@ export const changePasswordAction = withServerActionErrorHandling(rawChangePassw
 
 export const verifyEmailAction = withServerActionErrorHandling(rawVerifyEmailAction);
 
-// Export utility functions for external use
-export { hashPassword, verifyPassword, generateToken };
+// Note: hashPassword, verifyPassword, generateToken are internal helpers
+// and cannot be exported from a 'use server' file (must be async).
+// Import them directly if needed in other server-side modules.
