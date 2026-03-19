@@ -10,15 +10,29 @@ import {
   SortingState,
 } from '@tanstack/react-table';
 import { useState } from 'react';
+import {
+  Table,
+  Pagination,
+  Group,
+  Select,
+  Text,
+  ScrollArea,
+  ActionIcon,
+  Stack,
+  Skeleton,
+} from '@mantine/core';
+import { IconChevronUp, IconChevronDown, IconSelector } from '@tabler/icons-react';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  loading?: boolean;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  loading,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -35,106 +49,104 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="rounded-md border">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+    <Stack gap="md">
+      <ScrollArea>
+        <Table verticalSpacing="sm" highlightOnHover withTableBorder withColumnBorders>
+          <Table.Thead>
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
+              <Table.Tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <th
-                      key={header.id}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </th>
+                    <Table.Th key={header.id}>
+                      <Group justify="space-between" wrap="nowrap" gap={4}>
+                        <Text fw={700} size="sm">
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
+                        </Text>
+                        {header.column.getCanSort() && (
+                          <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            onClick={header.column.getToggleSortingHandler()}
+                            size="sm"
+                          >
+                            {header.column.getIsSorted() === 'asc' ? (
+                              <IconChevronUp size={14} />
+                            ) : header.column.getIsSorted() === 'desc' ? (
+                              <IconChevronDown size={14} />
+                            ) : (
+                              <IconSelector size={14} />
+                            )}
+                          </ActionIcon>
+                        )}
+                      </Group>
+                    </Table.Th>
                   );
                 })}
-              </tr>
+              </Table.Tr>
             ))}
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <tr key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </td>
+          </Table.Thead>
+          <Table.Tbody>
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <Table.Tr key={i}>
+                  {columns.map((_, j) => (
+                    <Table.Td key={j}>
+                      <Skeleton height={20} radius="xl" />
+                    </Table.Td>
                   ))}
-                </tr>
+                </Table.Tr>
+              ))
+            ) : table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <Table.Tr key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <Table.Td key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </Table.Td>
+                  ))}
+                </Table.Tr>
               ))
             ) : (
-              <tr>
-                <td
-                  colSpan={columns.length}
-                  className="px-6 py-4 text-center text-sm text-gray-500"
-                >
-                  No results.
-                </td>
-              </tr>
+              <Table.Tr>
+                <Table.Td colSpan={columns.length}>
+                  <Text ta="center" py="xl" color="dimmed">
+                    No records found
+                  </Text>
+                </Table.Td>
+              </Table.Tr>
             )}
-          </tbody>
-        </table>
-      </div>
-      
-      {/* Pagination Controls */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
-        <div className="flex justify-between flex-1 sm:hidden">
-          <button
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Previous
-          </button>
-          <button
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            className="relative inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Next
-          </button>
-        </div>
-        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-gray-700">
-              Page <span className="font-medium">{table.getState().pagination.pageIndex + 1}</span> of{' '}
-              <span className="font-medium">{table.getPageCount()}</span>
-            </p>
-          </div>
-          <div>
-            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-              <button
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-                className="relative inline-flex items-center px-2 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-                className="relative inline-flex items-center px-2 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </nav>
-          </div>
-        </div>
-      </div>
-    </div>
+          </Table.Tbody>
+        </Table>
+      </ScrollArea>
+
+      <Group justify="space-between" align="center">
+        <Group gap="sm">
+          <Text size="sm">Rows per page</Text>
+          <Select
+            size="xs"
+            w={70}
+            data={['10', '20', '30', '50']}
+            defaultValue={table.getState().pagination.pageSize.toString()}
+            onChange={(val) => table.setPageSize(Number(val))}
+          />
+        </Group>
+
+        <Group gap="xs">
+          <Text size="sm" color="dimmed">
+            Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+          </Text>
+          <Pagination
+            total={table.getPageCount()}
+            value={table.getState().pagination.pageIndex + 1}
+            onChange={(page) => table.setPageIndex(page - 1)}
+            size="sm"
+            withEdges
+          />
+        </Group>
+      </Group>
+    </Stack>
   );
 }
+
