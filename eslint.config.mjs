@@ -1,8 +1,10 @@
 import { defineConfig, globalIgnores } from 'eslint/config';
 import nextVitals from 'eslint-config-next/core-web-vitals';
+import pluginQuery from '@tanstack/eslint-plugin-query';
 
 const eslintConfig = defineConfig([
   ...nextVitals,
+  ...pluginQuery.configs['flat/recommended'],
   {
     rules: {
       'react/no-unescaped-entities': 'off',
