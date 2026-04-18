@@ -42,7 +42,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # Next.js + Prisma Studio (Dockerfile.dev) — env from .env.local + overrides below
+  # Next.js + Prisma Studio (Dockerfile.dev) — env from .env.local + overrides below.
+  # Volume `.:/app` replaces the image filesystem; docker-entrypoint.dev.sh runs `prisma generate` on each start.
   app-dev:
     build:
       context: .
@@ -59,6 +60,7 @@ services:
       - '${APP_DEV_PORT:-3000}:3000'
       - '${PRISMA_STUDIO_PORT:-5555}:5555'
     volumes:
+      # Bind mount needs prisma generate in entrypoint (see comment on app-dev above).
       - .:/app
       - /app/node_modules
     depends_on:

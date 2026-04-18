@@ -45,7 +45,7 @@ help:
 # Development Environment
 dev:
 	@echo "🚀 Starting development stack (Postgres + Redis + Next/Prisma Studio)..."
-	docker compose -f docker-compose.dev.yml --env-file .env.local up -d --build postgres-dev redis-dev app-dev
+	docker compose -f docker-compose.dev.yml --env-file .env.local up -d
 	@echo "✅ Development stack started!"
 	@echo "   Next.js:    http://localhost:3000 (set APP_DEV_PORT in .env.local to change)"
 	@echo "   Prisma UI: http://localhost:5555 (set PRISMA_STUDIO_PORT in .env.local to change)"

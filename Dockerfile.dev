@@ -7,18 +7,17 @@ RUN apk add --no-cache libc6-compat openssl
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 RUN npm ci --ignore-scripts
 
 COPY prisma ./prisma
 COPY prisma.config.ts ./
-ENV DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build"
-RUN npx prisma generate
-
 COPY docker-entrypoint.dev.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.dev.sh
 
 COPY . .
+ENV DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build"
+RUN npx prisma generate
 
 EXPOSE 3000 5555
 
@@ -26,4 +25,4 @@ ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 
 ENTRYPOINT ["docker-entrypoint.dev.sh"]
-CMD ["sh", "-c", "exec npx concurrently -k -n next,studio -c cyan,magenta \"next dev --turbopack -H 0.0.0.0 -p 3000\" \"prisma studio --hostname 0.0.0.0 --port 5555 --browser none\""]
+CMD ["sh", "-c", "exec npx concurrently -k -n next,studio -c cyan,magenta \"next dev --turbopack -H 0.0.0.0 -p 3000\" \"prisma studio --port 5555 --browser none\""]
