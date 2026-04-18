@@ -190,7 +190,7 @@ For development with Docker:
 
 ```bash
 # Start PostgreSQL and Redis services
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 
 # Run database migrations
 npm run db:migrate
@@ -450,7 +450,7 @@ Error: Can't reach database server
 
 **Solutions**:
 
-1. Make sure PostgreSQL is running: `docker-compose -f docker-compose.dev.yml up -d`
+1. Make sure PostgreSQL is running: `docker compose -f docker-compose.dev.yml up -d`
 2. Check your `DATABASE_URL` in `.env.local`
 3. Run database migrations: `npm run db:migrate`
 

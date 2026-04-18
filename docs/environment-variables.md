@@ -188,7 +188,7 @@ NEXT_PUBLIC_LOG_LEVEL="info"
 2. **Start services**:
    ```bash
    # Start PostgreSQL and Redis
-   docker-compose -f docker-compose.dev.yml up -d
+   docker compose -f docker compose.dev.yml up -d
    ```
 
 3. **Update database URL**:
@@ -210,7 +210,7 @@ Environment variables are automatically loaded from `.env.development`.
 
 ```bash
 # Start with Docker
-docker-compose -f docker-compose.dev.yml up
+docker compose -f docker compose.dev.yml up
 ```
 
 ### Production Deployment

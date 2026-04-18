@@ -45,7 +45,7 @@ help:
 # Development Environment
 dev:
 	@echo "🚀 Starting development environment (Database + Redis)..."
-	docker-compose -f docker-compose.dev.yml --env-file .env.local up -d postgres-dev redis-dev
+	docker compose -f docker compose.dev.yml --env-file .env.local up -d postgres-dev redis-dev
 	@echo "✅ Development services started!"
 	@echo "   PostgreSQL: localhost:5432"
 	@echo "   Redis: localhost:6379"
@@ -53,7 +53,7 @@ dev:
 
 dev-full:
 	@echo "🚀 Starting development environment with management tools..."
-	docker-compose -f docker-compose.dev.yml --profile tools --env-file .env.local up -d
+	docker compose -f docker compose.dev.yml --profile tools --env-file .env.local up -d
 	@echo "✅ Development services with tools started!"
 	@echo "   PostgreSQL: localhost:5432"
 	@echo "   Redis: localhost:6379"
@@ -62,12 +62,12 @@ dev-full:
 
 dev-stop:
 	@echo "🛑 Stopping development environment..."
-	docker-compose -f docker-compose.dev.yml --env-file .env.local down
+	docker compose -f docker compose.dev.yml --env-file .env.local down
 	@echo "✅ Development environment stopped"
 
 dev-clean:
 	@echo "🧹 Cleaning development environment..."
-	docker-compose -f docker-compose.dev.yml --env-file .env.local down -v --remove-orphans
+	docker compose -f docker compose.dev.yml --env-file .env.local down -v --remove-orphans
 	docker volume prune -f
 	@echo "✅ Development environment cleaned"
 
@@ -79,19 +79,19 @@ build:
 
 prod:
 	@echo "🚀 Starting production environment..."
-	docker-compose --env-file .env.production up -d app postgres redis
+	docker compose --env-file .env.production up -d app postgres redis
 	@echo "✅ Production environment started!"
 	@echo "   Application: http://localhost:3000"
 
 prod-proxy:
 	@echo "🚀 Starting production with Nginx proxy..."
-	docker-compose --profile proxy --env-file .env.production up -d
+	docker compose --profile proxy --env-file .env.production up -d
 	@echo "✅ Production with proxy started!"
 	@echo "   Application: http://localhost (port 80)"
 
 prod-monitor:
 	@echo "🚀 Starting production with monitoring..."
-	docker-compose --profile monitoring --env-file .env.production up -d
+	docker compose --profile monitoring --env-file .env.production up -d
 	@echo "✅ Production with monitoring started!"
 	@echo "   Application: http://localhost:3000"
 	@echo "   Prometheus: http://localhost:9090"
@@ -99,12 +99,12 @@ prod-monitor:
 
 prod-stop:
 	@echo "🛑 Stopping production environment..."
-	docker-compose --env-file .env.production down
+	docker compose --env-file .env.production down
 	@echo "✅ Production environment stopped"
 
 prod-clean:
 	@echo "🧹 Cleaning production environment..."
-	docker-compose --env-file .env.production down -v --remove-orphans
+	docker compose --env-file .env.production down -v --remove-orphans
 	docker volume prune -f
 	@echo "✅ Production environment cleaned"
 
@@ -168,21 +168,21 @@ type-check:
 # Logs
 logs:
 	@echo "📋 Viewing application logs..."
-	docker-compose --env-file .env.production logs -f app
+	docker compose --env-file .env.production logs -f app
 
 logs-db:
 	@echo "📋 Viewing database logs..."
-	docker-compose -f docker-compose.dev.yml --env-file .env.local logs -f postgres-dev
+	docker compose -f docker compose.dev.yml --env-file .env.local logs -f postgres-dev
 
 logs-redis:
 	@echo "📋 Viewing Redis logs..."
-	docker-compose -f docker-compose.dev.yml --env-file .env.local logs -f redis-dev
+	docker compose -f docker compose.dev.yml --env-file .env.local logs -f redis-dev
 
 # Cleanup
 clean-all:
 	@echo "🧹 Cleaning all environments..."
-	docker-compose -f docker-compose.dev.yml --env-file .env.local down -v --remove-orphans || true
-	docker-compose --env-file .env.production down -v --remove-orphans || true
+	docker compose -f docker compose.dev.yml --env-file .env.local down -v --remove-orphans || true
+	docker compose --env-file .env.production down -v --remove-orphans || true
 	docker system prune -f
 	docker volume prune -f
 	@echo "✅ All environments cleaned"
@@ -193,7 +193,7 @@ setup-dev: install dev db-migrate-dev db-seed-dev
 	@echo "   Run 'npm run dev' to start the application"
 
 # Quick production setup
-setup-prod: build prod db-migrate
+setup-prod: build prod db-migrate-prod
 	@echo "🎉 Production environment setup completed!"
 	@echo "   Application available at http://localhost:3000"
 

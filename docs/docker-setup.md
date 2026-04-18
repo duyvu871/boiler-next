@@ -25,7 +25,7 @@ The project uses different Docker configurations for development and production:
 make dev
 
 # Or manually:
-docker-compose -f docker-compose.dev.yml up -d postgres-dev redis-dev
+docker compose -f docker compose.dev.yml up -d postgres-dev redis-dev
 
 # Install dependencies and run the app locally
 npm install
@@ -39,7 +39,7 @@ npm run dev
 make dev-full
 
 # Or manually:
-docker-compose -f docker-compose.dev.yml --profile tools up -d
+docker compose -f docker compose.dev.yml --profile tools up -d
 ```
 
 ### Available Services (Development)
@@ -75,7 +75,7 @@ make prod
 
 # Or manually:
 docker build -t student-management:latest .
-docker-compose up -d app postgres redis
+docker compose up -d app postgres redis
 ```
 
 ### With Nginx Proxy
@@ -85,7 +85,7 @@ docker-compose up -d app postgres redis
 make prod-proxy
 
 # Or manually:
-docker-compose --profile proxy up -d
+docker compose --profile proxy up -d
 ```
 
 ### With Monitoring
@@ -95,7 +95,7 @@ docker-compose --profile proxy up -d
 make prod-monitor
 
 # Or manually:
-docker-compose --profile monitoring up -d
+docker compose --profile monitoring up -d
 ```
 
 ### Available Services (Production)
@@ -127,31 +127,31 @@ cp .env.example .env.production
 ### Migrations
 
 ```bash
-# Run migrations
-make db-migrate
+# Run migrations (development)
+make db-migrate-dev
 
 # Or manually:
-npm run db:migrate
+npm run migrate:dev
 ```
 
 ### Seeding
 
 ```bash
-# Seed database with sample data
-make db-seed
+# Seed database with sample data (development)
+make db-seed-dev
 
 # Or manually:
-npm run db:seed
+npm run db:seed:dev
 ```
 
 ### Reset Database
 
 ```bash
-# Drop, recreate, migrate and seed
-make db-reset
+# Drop, recreate, migrate and seed (development)
+make db-reset-dev
 
 # Or manually:
-npm run db:reset
+npm run db:reset:dev
 ```
 
 ## Common Commands
@@ -235,10 +235,10 @@ brew services stop postgresql  # macOS
 docker ps
 
 # Check container logs
-docker-compose -f docker-compose.dev.yml logs postgres-dev
+docker compose -f docker compose.dev.yml logs postgres-dev
 
 # Restart database container
-docker-compose -f docker-compose.dev.yml restart postgres-dev
+docker compose -f docker compose.dev.yml restart postgres-dev
 ```
 
 #### Redis Connection Issues
@@ -248,7 +248,7 @@ docker-compose -f docker-compose.dev.yml restart postgres-dev
 docker exec -it student-management-redis-dev redis-cli ping
 
 # Check Redis logs
-docker-compose -f docker-compose.dev.yml logs redis-dev
+docker compose -f docker compose.dev.yml logs redis-dev
 ```
 
 ### Health Checks
@@ -278,7 +278,7 @@ docker volume prune -f
 
 ### PostgreSQL
 
-For production, consider these PostgreSQL settings in `docker-compose.yml`:
+For production, consider these PostgreSQL settings in `docker compose.yml`:
 
 ```yaml
 postgres:
@@ -338,10 +338,10 @@ secrets:
 
 ```bash
 # Follow application logs
-docker-compose logs -f app
+docker compose logs -f app
 
 # View specific service logs
-docker-compose logs postgres redis
+docker compose logs postgres redis
 ```
 
 ### System Monitoring
@@ -401,7 +401,7 @@ jobs:
         
       - name: Run tests
         run: |
-          docker-compose -f docker-compose.dev.yml up -d postgres-dev redis-dev
+          docker compose -f docker compose.dev.yml up -d postgres-dev redis-dev
           npm test
           
       - name: Deploy to production
