@@ -6,7 +6,7 @@ This guide explains how to set up and run the Nextjs 15 template using Docker.
 
 The project uses different Docker configurations for development and production:
 
-- **Development**: Only database and Redis run in Docker containers
+- **Development**: Postgres, Redis, and **app-dev** (Next.js + Prisma Studio via `Dockerfile.dev`) run in Docker; Compose injects DB/Redis URLs for the app container.
 - **Production**: Full application stack runs in Docker containers
 
 ## Prerequisites
@@ -21,48 +21,70 @@ The project uses different Docker configurations for development and production:
 ### Quick Start
 
 ```bash
-# Start database and Redis containers
-make dev
+cp .env.example .env.local
+# Edit secrets in .env.local, then:
 
-# Or manually:
-docker compose -f docker compose.dev.yml up -d postgres-dev redis-dev
-
-# Install dependencies and run the app locally
-npm install
+# Foreground (logs): Postgres + Redis + app-dev (Next + Prisma Studio)
 npm run dev
+
+# Or detached:
+make dev
 ```
+
+`docker compose` interpolates `${POSTGRES_USER}`, `${POSTGRES_PASSWORD}`, etc. from `--env-file .env.local` into the `app-dev` service `environment` block (no dotenv-expand in Node).
 
 ### With Management Tools
 
 ```bash
-# Start with pgAdmin and Redis Commander
+# Start with Redis Commander (optional Redis UI)
 make dev-full
 
 # Or manually:
-docker compose -f docker compose.dev.yml --profile tools up -d
+docker compose -f docker-compose.dev.yml --env-file .env.local --profile tools up -d
 ```
 
 ### Available Services (Development)
 
-| Service | Port | URL | Credentials |
-|---------|------|-----|-------------|
-| PostgreSQL | 5432 | localhost:5432 | postgres/postgres123 |
-| Redis | 6379 | localhost:6379 | Password: redis123 |
-| pgAdmin | 5050 | http://localhost:5050 | admin@student-management.dev/admin123 |
-| Redis Commander | 8081 | http://localhost:8081 | - |
+Host ports are set in `.env.local` (see `.env.example`). Defaults below match the example file.
+
+| Service | Env port var | Default | Notes |
+|---------|----------------|---------|--------|
+| PostgreSQL | `POSTGRES_HOST_PORT` | 5432 | User/password: `POSTGRES_*` in `.env.local` |
+| Redis | `REDIS_HOST_PORT` | 6379 | Password: `REDIS_PASSWORD` (must match `REDIS_URL`) |
+| Redis Commander | `REDIS_COMMANDER_PORT` | 8081 | `--profile tools` |
+| Next.js (`app-dev`) | `APP_DEV_PORT` | 3000 | `Dockerfile.dev` |
+| Prisma Studio (`app-dev`) | `PRISMA_STUDIO_PORT` | 5555 | Same container as Next |
 
 ### Environment Variables
 
-Create `.env.development` file:
+Copy the template and start services:
 
-```env
-NODE_ENV="development"
-DATABASE_URL="postgresql://postgres:postgres123@localhost:5432/student_management_dev"
-REDIS_URL="redis://:redis123@localhost:6379"
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="dev-secret-key-not-for-production"
-JWT_SECRET="dev-jwt-secret-not-for-production"
+```bash
+cp .env.example .env.local
+# Edit secrets (replace ChangeMe / Dev* placeholders), then:
+make dev
 ```
+
+Keep **localhost** `DATABASE_URL` / `REDIS_URL` in `.env.local` for Prisma CLI on the host (`migrate:dev`, …). The **app-dev** container receives different URLs from Compose pointing at `postgres-dev` and `redis-dev`.
+
+### Migrations inside Docker (Makefile)
+
+`make migrate` does **not** require `app-dev` to be running: it uses **`docker compose run --rm`**, which starts **`postgres-dev`** / **`redis-dev`** if needed, runs a one-off **`app-dev`** container, then removes it.
+
+```bash
+cp .env.local .env.dev   # or maintain .env.dev with the same keys for Compose interpolation
+make migrate
+```
+
+`docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.dev run --rm app-dev sh -c "npx prisma migrate dev && npx prisma generate"`
+
+Then `sudo chown` on `prisma/migrations` for files created as root on the bind mount.
+
+Production: **`make migrate-prod`** runs a one-off **`prisma-migrate-prod`** container (`Dockerfile.dev` + Prisma CLI) on the **production** network, with DB URL pointing at service **`postgres`**. It uses **`run --rm`** and profile **`migrate`** (production `app` image does not ship Prisma CLI):
+
+`docker compose -f docker-compose.yml --env-file .env.prod --profile migrate run --rm prisma-migrate-prod npx prisma migrate deploy`
+
+Postgres must be reachable (e.g. `docker compose ... up -d postgres` or full `make prod`).
 
 ## Production Setup
 
@@ -75,37 +97,18 @@ make prod
 
 # Or manually:
 docker build -t student-management:latest .
-docker compose up -d app postgres redis
-```
-
-### With Nginx Proxy
-
-```bash
-# Start with Nginx reverse proxy
-make prod-proxy
-
-# Or manually:
-docker compose --profile proxy up -d
-```
-
-### With Monitoring
-
-```bash
-# Start with Prometheus and Grafana
-make prod-monitor
-
-# Or manually:
-docker compose --profile monitoring up -d
+docker compose --env-file .env.production up -d app postgres redis
 ```
 
 ### Available Services (Production)
 
-| Service | Port | URL | Description |
-|---------|------|-----|-------------|
-| Application | 3000 | http://localhost:3000 | Main app |
-| Nginx (optional) | 80/443 | http://localhost | Reverse proxy |
-| Prometheus (optional) | 9090 | http://localhost:9090 | Metrics |
-| Grafana (optional) | 3001 | http://localhost:3001 | Dashboard |
+The published port for the app comes from `APP_HOST_PORT` in `.env.production` (default `3000`).
+
+| Service | Default host port | URL (default) |
+|---------|-------------------|----------------|
+| Application | `APP_HOST_PORT` (3000) | http://localhost:3000 |
+
+`postgres` and `redis` are not published to the host by default (only reachable from the `app` container on the Compose network).
 
 ### Environment Variables
 
@@ -235,20 +238,21 @@ brew services stop postgresql  # macOS
 docker ps
 
 # Check container logs
-docker compose -f docker compose.dev.yml logs postgres-dev
+docker compose -f docker-compose.dev.yml --env-file .env.local logs postgres-dev
 
 # Restart database container
-docker compose -f docker compose.dev.yml restart postgres-dev
+docker compose -f docker-compose.dev.yml --env-file .env.local restart postgres-dev
 ```
 
 #### Redis Connection Issues
 
 ```bash
-# Test Redis connection
-docker exec -it student-management-redis-dev redis-cli ping
+# Test Redis connection (REDIS_PASSWORD is set inside the container)
+docker compose -f docker-compose.dev.yml --env-file .env.local exec redis-dev \
+  sh -c 'redis-cli --no-auth-warning -a "$REDIS_PASSWORD" ping'
 
 # Check Redis logs
-docker compose -f docker compose.dev.yml logs redis-dev
+docker compose -f docker-compose.dev.yml --env-file .env.local logs redis-dev
 ```
 
 ### Health Checks
@@ -256,11 +260,8 @@ docker compose -f docker compose.dev.yml logs redis-dev
 All containers include health checks. Check status:
 
 ```bash
-# Check container health
-docker ps
-
-# Detailed health check info
-docker inspect student-management-postgres-dev | grep -A 10 Health
+docker compose -f docker-compose.dev.yml --env-file .env.local ps
+docker inspect "$(docker compose -f docker-compose.dev.yml --env-file .env.local ps -q postgres-dev)" | grep -A 10 Health
 ```
 
 ### Cleanup
@@ -278,7 +279,7 @@ docker volume prune -f
 
 ### PostgreSQL
 
-For production, consider these PostgreSQL settings in `docker compose.yml`:
+For production, consider these PostgreSQL settings in `docker-compose.yml`:
 
 ```yaml
 postgres:
@@ -344,13 +345,6 @@ docker compose logs -f app
 docker compose logs postgres redis
 ```
 
-### System Monitoring
-
-With monitoring profile enabled:
-
-- **Prometheus**: Metrics collection at http://localhost:9090
-- **Grafana**: Dashboards at http://localhost:3001 (admin/admin123)
-
 ### Log Aggregation
 
 For production, consider using:
@@ -364,19 +358,19 @@ For production, consider using:
 ### Database Backup
 
 ```bash
-# Create backup
-docker exec student-management-postgres pg_dump -U postgres student_management > backup.sql
+# From the project directory (POSTGRES_* are set inside the container)
+docker compose --env-file .env.production exec postgres \
+  sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > backup.sql
 
-# Restore backup
-docker exec -i student-management-postgres psql -U postgres student_management < backup.sql
+docker compose --env-file .env.production exec -T postgres \
+  sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"' < backup.sql
 ```
 
 ### Redis Backup
 
 ```bash
-# Redis automatically saves to /data volume
-# Copy backup file
-docker cp student-management-redis:/data/dump.rdb ./redis-backup.rdb
+# Redis persists to a named volume; copy dump from a running redis service:
+docker compose --env-file .env.production cp redis:/data/dump.rdb ./redis-backup.rdb
 ```
 
 ## CI/CD Integration
@@ -401,7 +395,7 @@ jobs:
         
       - name: Run tests
         run: |
-          docker compose -f docker compose.dev.yml up -d postgres-dev redis-dev
+          docker compose -f docker-compose.dev.yml --env-file .env.local up -d postgres-dev redis-dev
           npm test
           
       - name: Deploy to production

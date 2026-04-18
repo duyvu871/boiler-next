@@ -133,80 +133,46 @@ npm install
 
 ### 2. Environment Setup
 
-Copy the example environment file:
+Copy the example environment file (it contains defaults, Docker host ports, and **non-empty** placeholder secrets you should replace for production):
 
 ```bash
 cp .env.example .env.local
 ```
 
-Configure your environment variables in `.env.local`:
+Edit `.env.local`: keep **literal** `DATABASE_URL` / `REDIS_URL` / `DIRECT_URL` on `localhost` for Prisma CLI on the host; Docker Compose injects **overrides** for the `app-dev` container (see [Environment variables](./docs/environment-variables.md)).
 
-```env
-# Database
-DATABASE_URL="postgresql://postgres:postgres123@localhost:5432/nextjs_starter_dev"
-DIRECT_URL="postgresql://postgres:postgres123@localhost:5432/nextjs_starter_dev"
+### 3. Database Setup (host Prisma CLI)
 
-# NextAuth.js
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-super-secret-key-change-this-in-production"
-JWT_SECRET="your-jwt-secret-key-change-this-in-production"
-
-# OAuth (Optional)
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-
-# Redis (Optional)
-REDIS_URL="redis://:redis123@localhost:6379"
-
-# Logging
-LOG_LEVEL="info"
-NEXT_PUBLIC_LOG_LEVEL="info"
-```
-
-### 3. Database Setup
+With Postgres running (`make dev` or `docker compose ...` first):
 
 ```bash
-# Generate Prisma client
+npm install
 npx prisma generate
 
-# Run database migrations
-npx prisma migrate dev
+# Migrations against localhost URLs in .env.local
+npm run migrate:dev
 
-# Seed the database (optional)
-npm run seed
+# Seed (optional)
+npm run db:seed:dev
 ```
 
-### 4. Development Server
+### 4. Development (Dockerfile.dev)
+
+**`npm run dev`** starts **Postgres + Redis + app-dev** via Compose. The `app-dev` image (`Dockerfile.dev`) runs **Next.js** and **Prisma Studio** inside one container; env comes from `.env.local` plus Compose `environment` (DB/Redis URLs use service names `postgres-dev` / `redis-dev`).
 
 ```bash
 npm run dev
 ```
 
-🎉 Open [http://localhost:3000](http://localhost:3000) to see your application!
+🎉 [http://localhost:3000](http://localhost:3000) — Next.js · [http://localhost:5555](http://localhost:5555) — Prisma Studio (ports from `APP_DEV_PORT` / `PRISMA_STUDIO_PORT` in `.env.local`).
 
-### 5. Docker Setup (Optional)
+Detached stack: `npm run dev:docker:detach`. Stop: `make dev-stop`. Next **only** on the host (no Docker): `npm run dev:next-only`.
 
-For development with Docker:
-
-```bash
-# Start PostgreSQL and Redis services
-docker compose -f docker-compose.dev.yml up -d
-
-# Run database migrations
-npm run db:migrate
-
-# Start the development server
-npm run dev
-```
-
-Or use the Makefile for easier commands:
+### 5. Makefile shortcuts
 
 ```bash
-# Start all services and run migrations
-make dev
-
-# Stop all services
-make down
+make dev        # same stack as npm run dev (detached)
+make dev-stop
 ```
 
 ---
@@ -215,7 +181,9 @@ make down
 
 ```bash
 # Development
-npm run dev          # Start development server
+npm run dev              # Docker: Postgres + Redis + app-dev (Next + Prisma Studio, Dockerfile.dev)
+npm run dev:docker:detach # Same stack, detached (-d)
+npm run dev:next-only    # Next.js on host only (no Docker)
 npm run build        # Build for production
 npm run start        # Start production server
 npm run lint         # Run ESLint
@@ -225,14 +193,14 @@ npm run format:check # Check code formatting
 npm run type-check   # Run TypeScript type checking
 
 # Database
-npm run db:generate  # Generate Prisma client
-npm run db:migrate   # Run database migrations
-npm run db:seed      # Seed database with sample data
-npm run db:studio    # Open Prisma Studio
-npm run db:reset     # Reset database
+npm run db:generate   # Generate Prisma client
+npm run migrate:dev   # Migrations (host, .env.local localhost URLs)
+npm run db:seed:dev   # Seed database
+npm run db:studio     # Prisma Studio on host only
+npm run db:reset:dev  # Reset DB (host)
 
 # Docker & Development
-make dev            # Start all services with Docker
+make dev              # Dev stack in background (Compose)
 make down           # Stop all Docker services
 make logs           # View Docker logs
 make clean          # Clean Docker volumes and images

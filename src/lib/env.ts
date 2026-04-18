@@ -5,15 +5,25 @@ import { z, ZodIssue } from 'zod';
  * This ensures all required environment variables are present and properly typed
  */
 const envSchema = z.object({
-  // Database Configuration
+  // Database Configuration (Docker dev: Compose sets DATABASE_URL/DIRECT_URL on app-dev)
   POSTGRES_DB: z.string().min(1, 'POSTGRES_DB is required'),
   POSTGRES_USER: z.string().min(1, 'POSTGRES_USER is required'),
   POSTGRES_PASSWORD: z.string().min(1, 'POSTGRES_PASSWORD is required'),
+  POSTGRES_HOST: z.string().min(1).default('localhost'),
+  POSTGRES_PORT: z
+    .string()
+    .regex(/^\d+$/, 'POSTGRES_PORT must be digits')
+    .default('5432'),
   POSTGRES_HOST_AUTH_METHOD: z.string().default('trust'),
   DATABASE_URL: z.string().url('DATABASE_URL must be a valid URL'),
   DIRECT_URL: z.string().url('DIRECT_URL must be a valid URL').optional(),
 
   // Redis Configuration
+  REDIS_HOST: z.string().min(1).default('localhost'),
+  REDIS_PORT: z
+    .string()
+    .regex(/^\d+$/, 'REDIS_PORT must be digits')
+    .default('6379'),
   REDIS_URL: z.string().url('REDIS_URL must be a valid URL'),
 
   // NextAuth Configuration
@@ -83,7 +93,11 @@ const envSchema = z.object({
  */
 function validateEnv() {
   try {
-    return envSchema.parse(process.env);
+    const parsed = envSchema.parse(process.env);
+    return {
+      ...parsed,
+      DIRECT_URL: parsed.DIRECT_URL ?? parsed.DATABASE_URL,
+    };
   } catch (error) {
     if (error instanceof z.ZodError) {
       const missingVars = error.issues.map(
@@ -135,8 +149,8 @@ export const dbConfig = {
   database: env.POSTGRES_DB,
   user: env.POSTGRES_USER,
   password: env.POSTGRES_PASSWORD,
-  host: 'localhost',
-  port: 5432,
+  host: env.POSTGRES_HOST,
+  port: parseInt(env.POSTGRES_PORT, 10),
   url: env.DATABASE_URL,
   directUrl: env.DIRECT_URL,
 } as const;
@@ -145,6 +159,8 @@ export const dbConfig = {
  * Redis configuration object
  */
 export const redisConfig = {
+  host: env.REDIS_HOST,
+  port: parseInt(env.REDIS_PORT, 10),
   url: env.REDIS_URL,
 } as const;
 

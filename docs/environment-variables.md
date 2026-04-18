@@ -9,8 +9,9 @@ Comprehensive guide for configuring environment variables in the Nextjs 15 start
    cp .env.example .env.local
    ```
 
-2. Update the values in `.env.local` with your configuration
-3. Restart your development server
+2. Replace placeholder secrets (values containing `ChangeMe` / `Dev*`) with strong random values (use `openssl rand -base64 32` where appropriate). Do not leave required secrets blank.
+3. If you change `POSTGRES_HOST_PORT` or `REDIS_HOST_PORT`, update `DATABASE_URL` / `REDIS_URL` so the `localhost:<port>` part matches.
+4. Restart the dev server and Docker Compose services after changes.
 
 ## 📋 Environment Files
 
@@ -23,16 +24,33 @@ Comprehensive guide for configuring environment variables in the Nextjs 15 start
 
 ## 🔧 Configuration Sections
 
+### Docker Compose (host ports)
+
+Used by `docker-compose.dev.yml` and `docker-compose.yml` when you run `docker compose ...`. These only control **published** ports (host → container); inside the stack, services still use `5432`, `6379`, etc.
+
+| Variable | Default | Used for |
+|----------|---------|----------|
+| `POSTGRES_HOST_PORT` | `5432` | Dev PostgreSQL on the host |
+| `REDIS_HOST_PORT` | `6379` | Dev Redis on the host |
+| `REDIS_COMMANDER_PORT` | `8081` | Redis Commander (`--profile tools`) |
+| `APP_DEV_PORT` | `3000` | Dev Next.js (`app-dev` published port) |
+| `PRISMA_STUDIO_PORT` | `5555` | Prisma Studio (`app-dev`) |
+| `APP_HOST_PORT` | `3000` | Production `app` service (`docker-compose.yml`) |
+
+**Docker Compose `${VAR}`:** In `docker-compose.dev.yml`, values like `postgresql://${POSTGRES_USER}:...` are interpolated by **Compose** from the file passed to `docker compose --env-file .env.local` — not by Node or dotenv-expand. Define `POSTGRES_USER`, `POSTGRES_PASSWORD`, etc. in `.env.local`; the `app-dev` service gets concrete `DATABASE_URL` / `REDIS_URL` pointing at `postgres-dev` / `redis-dev` on the Compose network.
+
+For **Prisma CLI on the host** (`npm run migrate:dev`, …), keep literal `DATABASE_URL` / `REDIS_URL` in `.env.local` using `localhost` and the published ports (see `.env.example`).
+
 ### Database Configuration
-Required for Prisma and PostgreSQL connection.
+Required for Prisma and PostgreSQL connection. The password in `DATABASE_URL` must match `POSTGRES_PASSWORD`.
 
 ```bash
 POSTGRES_DB="student_management_dev"
 POSTGRES_USER="postgres"
-POSTGRES_PASSWORD="postgres123"
+POSTGRES_PASSWORD="your-strong-password"
 POSTGRES_HOST_AUTH_METHOD="trust"
-DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}"
-DIRECT_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}"
+DATABASE_URL="postgresql://postgres:your-strong-password@localhost:5432/student_management_dev"
+DIRECT_URL="postgresql://postgres:your-strong-password@localhost:5432/student_management_dev"
 ```
 
 - **POSTGRES_DB**: Database name
@@ -43,13 +61,21 @@ DIRECT_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${
 - **DIRECT_URL**: Direct database connection (for migrations)
 
 ### Redis Configuration
-Used for caching, session storage, and rate limiting.
+Used for caching, session storage, and rate limiting. The password in `REDIS_URL` must match `REDIS_PASSWORD`.
 
 ```bash
-REDIS_URL="redis://:redis123@localhost:6379"
+REDIS_PASSWORD="your-redis-password"
+REDIS_URL="redis://:your-redis-password@localhost:6379"
 ```
 
-- **REDIS_URL**: Full Redis connection string with password
+- **REDIS_PASSWORD**: Password for Redis (dev Docker and connection string)
+- **REDIS_URL**: Full Redis connection URL including password
+
+### Dev tools (Docker)
+
+**Redis Commander** — optional UI for Redis when you use `make dev-full` / Compose `--profile tools`. Port: `REDIS_COMMANDER_PORT`.
+
+**Prisma Studio** — not a Docker service here. It starts **with** the Next.js dev server when you run `npm run dev` (see `package.json`: `concurrently` runs Next on port `3000` and Prisma Studio on **http://localhost:5555**). To open Studio alone: `npm run db:studio`.
 
 ### NextAuth Configuration
 Authentication and session management.

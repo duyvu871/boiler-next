@@ -5,11 +5,15 @@ declare global {
 			POSTGRES_DB: string;
 			POSTGRES_USER: string;
 			POSTGRES_PASSWORD: string;
+			POSTGRES_HOST?: string;
+			POSTGRES_PORT?: string;
 			POSTGRES_HOST_AUTH_METHOD: string;
 			DATABASE_URL: string;
 			DIRECT_URL?: string;
 
 			// Redis Configuration
+			REDIS_HOST?: string;
+			REDIS_PORT?: string;
 			REDIS_URL: string;
 
 			// NextAuth Configuration

@@ -2,7 +2,6 @@ services:
   # PostgreSQL Database for Development
   postgres-dev:
     image: postgres:15-alpine
-    container_name: student-management-postgres-dev
     restart: unless-stopped
     env_file:
       - .env.local
@@ -12,14 +11,14 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_HOST_AUTH_METHOD: ${POSTGRES_HOST_AUTH_METHOD}
     ports:
-      - '5432:5432'
+      - '${POSTGRES_HOST_PORT:-5432}:5432'
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     networks:
       - student-management-dev
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d student_management_dev']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,55 +26,58 @@ services:
   # Redis for Development
   redis-dev:
     image: redis:7-alpine
-    container_name: student-management-redis-dev
     restart: unless-stopped
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     ports:
-      - '6379:6379'
+      - '${REDIS_HOST_PORT:-6379}:6379'
     volumes:
       - redis_dev_data:/data
     networks:
       - student-management-dev
     healthcheck:
-      test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
+      test: ['CMD', 'redis-cli', '--no-auth-warning', '-a', '${REDIS_PASSWORD}', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # pgAdmin for Database Management (Optional)
-  pgadmin-dev:
-    image: dpage/pgadmin4:latest
-    container_name: student-management-pgadmin-dev
+  # Next.js + Prisma Studio (Dockerfile.dev) — env from .env.local + overrides below
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     restart: unless-stopped
     env_file:
       - .env.local
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@student-management.dev
-      PGADMIN_DEFAULT_PASSWORD: admin123
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-dev:5432/${POSTGRES_DB}
+      DIRECT_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-dev:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis-dev:6379
     ports:
-      - '5050:80'
+      - '${APP_DEV_PORT:-3000}:3000'
+      - '${PRISMA_STUDIO_PORT:-5555}:5555'
     volumes:
-      - pgadmin_dev_data:/var/lib/pgadmin
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+      redis-dev:
+        condition: service_healthy
     networks:
       - student-management-dev
-    depends_on:
-      - postgres-dev
-    profiles:
-      - tools # Only start with --profile tools
 
   # Redis Commander for Redis Management (Optional)
   redis-commander-dev:
     image: rediscommander/redis-commander:latest
-    container_name: student-management-redis-commander-dev
     restart: unless-stopped
     environment:
       REDIS_HOSTS: local:redis-dev:6379
-      REDIS_PASSWORD: redis123
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
-      - '8081:8081'
+      - '${REDIS_COMMANDER_PORT:-8081}:8081'
     networks:
       - student-management-dev
     depends_on:
@@ -88,8 +90,6 @@ volumes:
     name: student-management-postgres-dev-data
   redis_dev_data:
     name: student-management-redis-dev-data
-  pgadmin_dev_data:
-    name: student-management-pgadmin-dev-data
 
 networks:
   student-management-dev:

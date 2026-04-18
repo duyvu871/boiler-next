@@ -5,7 +5,6 @@ services:
       context: .
       dockerfile: Dockerfile
       target: production
-    container_name: student-management-app
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -15,9 +14,8 @@ services:
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       JWT_SECRET: ${JWT_SECRET}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:admin123}
     ports:
-      - '3000:3000'
+      - '${APP_HOST_PORT:-3000}:3000'
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,7 +33,6 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: student-management-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -48,7 +45,7 @@ services:
     networks:
       - student-management
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d ${POSTGRES_DB}']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -56,7 +53,6 @@ services:
   # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: student-management-redis
     restart: unless-stopped
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
@@ -66,82 +62,33 @@ services:
     networks:
       - student-management
     healthcheck:
-      test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
+      test: ['CMD', 'redis-cli', '--no-auth-warning', '-a', '${REDIS_PASSWORD}', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Nginx Reverse Proxy (Optional for production)
-  nginx:
-    image: nginx:alpine
-    container_name: student-management-nginx
-    restart: unless-stopped
-    ports:
-      - '80:80'
-      - '443:443'
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - app
+  # One-off Prisma deploy (Dockerfile.dev has CLI); not started by default — use: make migrate-prod
+  prisma-migrate-prod:
+    profiles:
+      - migrate
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     networks:
       - student-management
-    profiles:
-      - proxy # Only start with --profile proxy
-
-  # Monitoring with Prometheus (Optional)
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: student-management-prometheus
-    restart: unless-stopped
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--web.enable-lifecycle'
-    ports:
-      - '9090:9090'
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    networks:
-      - student-management
-    profiles:
-      - monitoring # Only start with --profile monitoring
-
-  # Grafana Dashboard (Optional)
-  grafana:
-    image: grafana/grafana:latest
-    container_name: student-management-grafana
-    restart: unless-stopped
-    env_file:
-      - .env
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:admin123}
-      GF_USERS_ALLOW_SIGN_UP: false
-    ports:
-      - '6001:3000'
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DIRECT_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
-      - prometheus
-    networks:
-      - student-management
-    profiles:
-      - monitoring # Only start with --profile monitoring
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:
     name: student-management-postgres-data
   redis_data:
     name: student-management-redis-data
-  prometheus_data:
-    name: student-management-prometheus-data
-  grafana_data:
-    name: student-management-grafana-data
 
 networks:
   student-management:
