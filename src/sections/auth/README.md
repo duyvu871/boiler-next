@@ -1,6 +1,6 @@
 # Auth Section
 
-Phần xử lý xác thực (authentication) cho Nextjs 15 template, bao gồm đăng nhập, đăng ký và quản lý phiên người dùng.
+Phần xử lý xác thực (authentication) cho template Next.js 16, bao gồm đăng nhập, đăng ký và quản lý phiên người dùng.
 
 ## 🚀 Features
 

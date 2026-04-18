@@ -80,7 +80,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_API_URL: z.string().url().optional(),
   NEXT_PUBLIC_SOCKET_URL: z.string().url().optional(),
   NEXT_PUBLIC_GOOGLE_ANALYTICS_ID: z.string().optional(),
-  NEXT_PUBLIC_APP_NAME: z.string().default('Next.js 15 Starter Template'),
+  NEXT_PUBLIC_APP_NAME: z.string().default('Next.js 16 Starter Template'),
   NEXT_PUBLIC_APP_VERSION: z.string().default('1.0.0'),
   NEXT_PUBLIC_LOG_LEVEL: z
     .enum(['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'])

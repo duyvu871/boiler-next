@@ -182,7 +182,7 @@ const rawRegisterAction = async (data: RegisterInput) => {
     // Hash password
     const hashedPassword = await hashPassword(validatedData.password);
 
-    // Create user with default STUDENT role and PENDING_VERIFICATION status
+    // Create user with default USER role and PENDING_VERIFICATION status
     const user = await db.user.create({
       data: {
         name: validatedData.name,

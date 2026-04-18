@@ -5,7 +5,7 @@
 
 # Default target
 help:
-	@echo "Nextjs 15 template - Available Commands:"
+	@echo "Next.js 16 template - Available Commands:"
 	@echo ""
 	@echo "Development:"
 	@echo "  make dev          - Start Postgres + Redis + app-dev (Next + Prisma Studio in Docker)"
@@ -74,7 +74,7 @@ dev-clean:
 # Production Environment
 build:
 	@echo "🔨 Building production Docker image..."
-	docker build -t nextjs-15-template:latest .
+	docker build -t nextjs-16-template:latest .
 	@echo "✅ Production image built successfully"
 
 prod:

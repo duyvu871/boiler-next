@@ -1,4 +1,4 @@
--- Initialize Nextjs 15 template Database
+-- Initialize Next.js 16 template database
 -- This script runs automatically when the PostgreSQL container starts
 
 -- Create extensions if they don't exist
@@ -22,7 +22,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 SET timezone = 'Asia/Bangkok';
 
 -- Log initialization
-SELECT 'Nextjs 15 template Database initialized successfully!' as status;
+SELECT 'Next.js 16 template database initialized successfully!' AS status;
 
 
 

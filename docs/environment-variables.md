@@ -1,6 +1,6 @@
 # Environment Variables Documentation
 
-Comprehensive guide for configuring environment variables in the Nextjs 15 starter template
+Comprehensive guide for configuring environment variables in the Next.js 16 starter template
 
 ## 🚀 Quick Start
 
@@ -45,12 +45,12 @@ For **Prisma CLI on the host** (`npm run migrate:dev`, …), keep literal `DATAB
 Required for Prisma and PostgreSQL connection. The password in `DATABASE_URL` must match `POSTGRES_PASSWORD`.
 
 ```bash
-POSTGRES_DB="student_management_dev"
+POSTGRES_DB="app_dev"
 POSTGRES_USER="postgres"
 POSTGRES_PASSWORD="your-strong-password"
 POSTGRES_HOST_AUTH_METHOD="trust"
-DATABASE_URL="postgresql://postgres:your-strong-password@localhost:5432/student_management_dev"
-DIRECT_URL="postgresql://postgres:your-strong-password@localhost:5432/student_management_dev"
+DATABASE_URL="postgresql://postgres:your-strong-password@localhost:5432/app_dev"
+DIRECT_URL="postgresql://postgres:your-strong-password@localhost:5432/app_dev"
 ```
 
 - **POSTGRES_DB**: Database name
@@ -172,7 +172,7 @@ Client-side accessible variables (must start with `NEXT_PUBLIC_`).
 ```bash
 NEXT_PUBLIC_BASE_URL="http://localhost:3000"
 NEXT_PUBLIC_API_URL="http://localhost:3000/api"
-NEXT_PUBLIC_APP_NAME="Nextjs 15 template"
+NEXT_PUBLIC_APP_NAME="Next.js 16 template"
 NEXT_PUBLIC_APP_VERSION="1.0.0"
 NEXT_PUBLIC_LOG_LEVEL="info"
 ```
@@ -219,7 +219,7 @@ NEXT_PUBLIC_LOG_LEVEL="info"
 
 3. **Update database URL**:
    ```bash
-   DATABASE_URL="postgresql://postgres:postgres123@localhost:5432/student_management_dev"
+   DATABASE_URL="postgresql://postgres:postgres123@localhost:5432/app_dev"
    ```
 
 4. **Generate secrets**:
@@ -251,7 +251,7 @@ For testing, create `.env.test`:
 
 ```bash
 NODE_ENV="test"
-DATABASE_URL="postgresql://postgres:postgres123@localhost:5432/student_management_test"
+DATABASE_URL="postgresql://postgres:postgres123@localhost:5432/app_test"
 REDIS_URL="redis://:redis123@localhost:6379/1"
 NEXTAUTH_SECRET="test-secret-key-minimum-32-characters"
 JWT_SECRET="test-jwt-secret-key-minimum-32-chars"
@@ -346,4 +346,4 @@ npm run redis:test
 - [ ] Secrets rotated regularly
 - [ ] Environment-specific configurations
 
-This documentation ensures proper configuration and security for all environments in the Nextjs 15 template System.
+This documentation ensures proper configuration and security for all environments in the Next.js 16 template system.

@@ -22,7 +22,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - student-management
+      - app-net
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/health']
       interval: 30s
@@ -43,7 +43,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     networks:
-      - student-management
+      - app-net
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 10s
@@ -60,7 +60,7 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - student-management
+      - app-net
     healthcheck:
       test: ['CMD', 'redis-cli', '--no-auth-warning', '-a', '${REDIS_PASSWORD}', 'ping']
       interval: 10s
@@ -75,7 +75,7 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     networks:
-      - student-management
+      - app-net
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
@@ -86,11 +86,11 @@ services:
 
 volumes:
   postgres_data:
-    name: student-management-postgres-data
+    name: app-postgres-data
   redis_data:
-    name: student-management-redis-data
+    name: app-redis-data
 
 networks:
-  student-management:
-    name: student-management-network
+  app-net:
+    name: app-network
     driver: bridge

@@ -1,6 +1,6 @@
 # Authentication Feature
 
-Comprehensive authentication system for the Nextjs 15 template application, implementing secure user registration, login, and session management with modern UI/UX patterns.
+Comprehensive authentication system for the Next.js 16 template application, implementing secure user registration, login, and session management with modern UI/UX patterns.
 
 ## 🏗️ Architecture Overview
 
@@ -262,11 +262,11 @@ Server actions now integrate with NextAuth.js for authentication:
 import { requireAuth, requireRole } from '@/lib/auth-helpers'
 import { logAuth } from '@/utils/log'
 
-export async function createStudentAction(formData: FormData) {
+export async function createUserAction(formData: FormData) {
   // Require authentication and specific role
-  const user = await requireRole(['ADMIN', 'TEACHER']);
+  const user = await requireRole(['ADMIN']);
   
-  logAuth('STUDENT_CREATION_ATTEMPT', user.id, {
+  logAuth('USER_CREATION_ATTEMPT', user.id, {
     email: user.email,
     role: user.role,
   });
@@ -294,7 +294,7 @@ const rawRegisterAction = async (data: RegisterInput) => {
       id: Date.now().toString(),
       name: validatedData.name,
       email: validatedData.email,
-      role: 'STUDENT',
+      role: 'USER',
       createdAt: new Date().toISOString(),
     },
   };
@@ -829,7 +829,7 @@ GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
 
 # Database
-DATABASE_URL="postgresql://user:password@localhost:5432/student_management"
+DATABASE_URL="postgresql://user:password@localhost:5432/app"
 
 # Logging (Client-side accessible)
 NEXT_PUBLIC_LOG_LEVEL="info"
@@ -845,7 +845,7 @@ NEXT_PUBLIC_LOG_LEVEL="info"
 - **GOOGLE_CLIENT_ID/SECRET**: For Google OAuth integration
 - **NEXT_PUBLIC_LOG_LEVEL**: Client-side logging level
 
-### Database Schema (Planned)
+### Database Schema (simplified)
 
 ```prisma
 model User {
@@ -855,7 +855,7 @@ model User {
   password      String?   // Nullable for OAuth users
   emailVerified DateTime?
   image         String?
-  role          Role      @default(STUDENT)
+  role          Role      @default(USER)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
@@ -868,8 +868,7 @@ model User {
 
 enum Role {
   ADMIN
-  TEACHER
-  STUDENT
+  USER
 }
 ```
 

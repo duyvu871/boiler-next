@@ -1,8 +1,8 @@
-# Next.js 15 Starter Template
+# Next.js 16 Starter Template
 
 ## Introduction
 
-A modern, production-ready **Next.js 15 starter template** featuring complete authentication system and enterprise-grade architecture. Built for scalable web applications with **React 19**, **NextAuth.js**, **Prisma**, **PostgreSQL**, **Redis**, and **TypeScript**.
+A modern, production-ready **Next.js 16 starter template** featuring complete authentication system and enterprise-grade architecture. Built for scalable web applications with **React 19**, **NextAuth.js**, **Prisma**, **PostgreSQL**, **Redis**, and **TypeScript**.
 
 This template provides a **solid foundation** that you can customize and extend for any type of application. The authentication system is fully implemented as a **working example**, while the overall architecture is designed to be **flexible and adaptable** to your specific needs.
 
@@ -29,7 +29,7 @@ Perfect for:
 
 ### 🏗️ Architecture & Developer Experience
 
-- **Next.js 15** with App Router and React Server Components
+- **Next.js 16** with App Router and React Server Components
 - **TypeScript** with strict type checking
 - **Section-based architecture** for feature organization
 - **Prisma ORM** with PostgreSQL database
@@ -46,7 +46,7 @@ Perfect for:
 
 ### Core Framework
 
-- **Next.js 15** - React framework with App Router
+- **Next.js 16** - React framework with App Router
 - **React 19** - UI library with Server Components
 - **TypeScript** - Type-safe JavaScript
 

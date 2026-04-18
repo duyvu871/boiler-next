@@ -2,10 +2,10 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | Nextjs 15 template',
-    default: 'Authentication | Nextjs 15 template',
+    template: '%s | Next.js 16',
+    default: 'Authentication | Next.js 16',
   },
-  description: 'Login or register to Nextjs 15 template',
+  description: 'Login or register (Next.js 16 app)',
 };
 
 export default function AuthLayout({

@@ -1,6 +1,6 @@
 # Utils Library
 
-Comprehensive utility library built on Next.js 15 with App Router, TypeScript, and Tailwind CSS.
+Comprehensive utility library built on Next.js 16 with App Router, TypeScript, and Tailwind CSS.
 
 ## 🚀 Features
 

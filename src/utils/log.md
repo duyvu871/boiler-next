@@ -1,6 +1,6 @@
 # Logging System - Winston Implementation
 
-Comprehensive logging system using Winston for Next.js 15 template, supporting multiple transports, log levels, and structured logging.
+Comprehensive logging system using Winston for the Next.js 16 template, supporting multiple transports, log levels, and structured logging.
 
 ## 🚀 Features
 
@@ -193,8 +193,8 @@ logBusiness('USER_REGISTERED', 'user', newUser.id, {
 });
 
 // Course enrollment
-logBusiness('STUDENT_ENROLLED', 'enrollment', enrollmentId, {
-  studentId: student.id,
+logBusiness('COURSE_ENROLLED', 'enrollment', enrollmentId, {
+  userId: user.id,
   courseId: course.id,
   courseName: course.name,
 });

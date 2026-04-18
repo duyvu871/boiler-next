@@ -16,7 +16,7 @@ services:
       - postgres_dev_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     networks:
-      - student-management-dev
+      - app-dev
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 10s
@@ -35,7 +35,7 @@ services:
     volumes:
       - redis_dev_data:/data
     networks:
-      - student-management-dev
+      - app-dev
     healthcheck:
       test: ['CMD', 'redis-cli', '--no-auth-warning', '-a', '${REDIS_PASSWORD}', 'ping']
       interval: 10s
@@ -69,7 +69,7 @@ services:
       redis-dev:
         condition: service_healthy
     networks:
-      - student-management-dev
+      - app-dev
 
   # Redis Commander for Redis Management (Optional)
   redis-commander-dev:
@@ -81,7 +81,7 @@ services:
     ports:
       - '${REDIS_COMMANDER_PORT:-8081}:8081'
     networks:
-      - student-management-dev
+      - app-dev
     depends_on:
       - redis-dev
     profiles:
@@ -89,11 +89,11 @@ services:
 
 volumes:
   postgres_dev_data:
-    name: student-management-postgres-dev-data
+    name: app-postgres-dev-data
   redis_dev_data:
-    name: student-management-redis-dev-data
+    name: app-redis-dev-data
 
 networks:
-  student-management-dev:
-    name: student-management-dev-network
+  app-dev:
+    name: app-dev-network
     driver: bridge

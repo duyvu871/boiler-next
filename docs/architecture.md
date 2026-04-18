@@ -1,6 +1,6 @@
 # Architecture (starter template)
 
-This document describes how this **Next.js 15** starter is organized: stack boundaries, folder layout, and conventions. Extend it when you add your own domain features.
+This document describes how this **Next.js 16** starter is organized: stack boundaries, folder layout, and conventions. Extend it when you add your own domain features.
 
 ---
 

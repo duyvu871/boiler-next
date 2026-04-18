@@ -1,6 +1,6 @@
 # Docker Setup Guide
 
-This guide explains how to set up and run the Nextjs 15 template using Docker.
+This guide explains how to set up and run the Next.js 16 template using Docker.
 
 ## Overview
 
@@ -96,7 +96,7 @@ make build
 make prod
 
 # Or manually:
-docker build -t student-management:latest .
+docker build -t app:latest .
 docker compose --env-file .env.production up -d app postgres redis
 ```
 
@@ -324,7 +324,7 @@ services:
       - db_password
       - jwt_secret
     environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD_FILE}@postgres:5432/student_management
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD_FILE}@postgres:5432/app
 
 secrets:
   db_password:
@@ -391,7 +391,7 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Build Docker image
-        run: docker build -t student-management:${{ github.sha }} .
+        run: docker build -t app:${{ github.sha }} .
         
       - name: Run tests
         run: |
@@ -401,7 +401,7 @@ jobs:
       - name: Deploy to production
         if: github.ref == 'refs/heads/main'
         run: |
-          docker tag student-management:${{ github.sha }} student-management:latest
+          docker tag app:${{ github.sha }} app:latest
           # Deploy commands here
 ```
 
