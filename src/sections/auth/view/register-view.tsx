@@ -1,20 +1,13 @@
 'use client';
 
-import {
-  Anchor,
-  Checkbox,
-  Divider,
-  Paper,
-  Stack,
-  Text,
-} from '@mantine/core';
+import { Alert, Anchor, Checkbox, Divider, Stack, Text } from '@mantine/core';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { Controller, useForm } from 'react-hook-form';
 
 import { RegisterSchema, type RegisterInput } from 'app/sections/auth/data';
 import { FormInput, FormPasswordInput, FormButton, OAuthButton } from 'app/components/ui';
-import { AuthLayout } from 'app/components/layout/auth-layout';
+import { AuthFooterLink, AuthLayout } from 'app/components/layout/auth-layout';
 
 interface RegisterViewProps {
   onSubmit: (data: RegisterInput) => void | Promise<void>;
@@ -42,115 +35,101 @@ export function RegisterView({ onSubmit, isLoading = false, error }: RegisterVie
   };
 
   return (
-    <AuthLayout
-      title="Create an Account"
-      subtitle="Sign up now to get started with an account."
-    >
-      {/* Google Sign Up */}
-      <OAuthButton provider="google" action="signup" />
+    <AuthLayout title="Create account" subtitle="A short form — you can use Google instead.">
+      <Stack gap="sm">
+        <OAuthButton provider="google" action="signup" type="button" />
 
-      {/* Divider */}
-      <Divider label="OR" labelPosition="center" />
+        <Divider
+          label="or"
+          labelPosition="center"
+          size="xs"
+          styles={{ label: { textTransform: 'lowercase', fontSize: '0.75rem' } }}
+        />
 
-      {/* Form */}
-      <form onSubmit={handleSubmit(handleFormSubmit)}>
-        <Stack gap="md">
-          {error && (
-            <Paper p="xs" bg="red.0" c="red.6" style={{ border: '1px solid #fecaca' }}>
-              <Text size="sm" ta="center">
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
+          <Stack gap="sm">
+            {error && (
+              <Alert color="red" variant="light" radius="md">
                 {error}
-              </Text>
-            </Paper>
-          )}
-
-          <Controller
-            name="name"
-            control={control}
-            render={({ field }) => (
-              <FormInput
-                {...field}
-                label="Full Name"
-                placeholder="John Doe"
-                required
-                error={errors.name?.message}
-              />
+              </Alert>
             )}
-          />
 
-          <Controller
-            name="email"
-            control={control}
-            render={({ field }) => (
-              <FormInput
-                {...field}
-                label="Email Address"
-                placeholder="johndoe@gmail.com"
-                required
-                error={errors.email?.message}
-              />
-            )}
-          />
+            <Controller
+              name="name"
+              control={control}
+              render={({ field }) => (
+                <FormInput
+                  {...field}
+                  label="Name"
+                  placeholder="Your name"
+                  required
+                  error={errors.name?.message}
+                />
+              )}
+            />
 
-          <Controller
-            name="password"
-            control={control}
-            render={({ field }) => (
-              <FormPasswordInput
-                {...field}
-                label="Password"
-                placeholder="••••••••"
-                required
-                error={errors.password?.message}
-              />
-            )}
-          />
+            <Controller
+              name="email"
+              control={control}
+              render={({ field }) => (
+                <FormInput
+                  {...field}
+                  label="Email"
+                  placeholder="you@example.com"
+                  required
+                  error={errors.email?.message}
+                />
+              )}
+            />
 
-          <Controller
-            name="confirmPassword"
-            control={control}
-            render={({ field }) => (
-              <FormPasswordInput
-                {...field}
-                label="Confirm Password"
-                placeholder="••••••••"
-                required
-                error={errors.confirmPassword?.message}
-              />
-            )}
-          />
+            <Controller
+              name="password"
+              control={control}
+              render={({ field }) => (
+                <FormPasswordInput
+                  {...field}
+                  label="Password"
+                  placeholder="••••••••"
+                  required
+                  error={errors.password?.message}
+                />
+              )}
+            />
 
-          <Checkbox
-            label={
-              <Text size="sm">
-                I have read and agree to the{' '}
-                <Anchor component={Link} href="/terms" c="blue.6">
-                  Terms of Service
-                </Anchor>
-              </Text>
-            }
-            size="sm"
-          />
+            <Controller
+              name="confirmPassword"
+              control={control}
+              render={({ field }) => (
+                <FormPasswordInput
+                  {...field}
+                  label="Confirm password"
+                  placeholder="••••••••"
+                  required
+                  error={errors.confirmPassword?.message}
+                />
+              )}
+            />
 
-          <FormButton
-            type="submit"
-            
-            variant="primary"
-            fullWidth
-            loading={isLoading}
-            mt="md"
-          >
-            {isLoading ? 'Creating account...' : 'Get Started'}
-          </FormButton>
-        </Stack>
-      </form>
+            <Checkbox
+              size="xs"
+              label={
+                <Text size="xs" c="dimmed" span>
+                  I agree to the{' '}
+                  <Anchor component={Link} href="/terms" c="dark" underline="hover" span>
+                    Terms
+                  </Anchor>
+                </Text>
+              }
+            />
 
-      {/* Footer */}
-      <Text ta="center" size="sm" c="dimmed">
-        Already have an account?{' '}
-        <Anchor component={Link} href="/auth/login" fw={500} c="blue.6">
-          Log in
-        </Anchor>
-      </Text>
+            <FormButton type="submit" variant="primary" fullWidth loading={isLoading} mt="xs">
+              {isLoading ? 'Creating account…' : 'Create account'}
+            </FormButton>
+          </Stack>
+        </form>
+
+        <AuthFooterLink prompt="Already registered?" href="/auth/login" linkLabel="Sign in" />
+      </Stack>
     </AuthLayout>
   );
 }

@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import 'app/styles/globals.css';
 // Providers
 import MantineProvider from 'app/providers/mantine-provider';
@@ -9,7 +9,11 @@ import SessionProvider from 'app/providers/session-provider';
 import JotaiProvider from 'app/providers/jotai-provider';
 import QueryProvider from 'app/providers/query-client-provider';
 
-const inter = Inter({ subsets: ['latin'] });
+const fontSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-sans',
+});
 
 export const metadata: Metadata = {
   title: 'Fitting Rooms Pro',
@@ -24,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} antialiased`}>
+      <body className={`${fontSans.variable} ${fontSans.className} antialiased`}>
         <ThemeProvider>
           <MantineProvider>
             <SessionProvider>

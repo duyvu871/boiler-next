@@ -1,12 +1,12 @@
 'use client';
 
-import { Anchor, Checkbox, Divider, Group, Paper, Stack, Text } from '@mantine/core';
+import { Alert, Anchor, Checkbox, Divider, Group, Stack, Text } from '@mantine/core';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { LoginSchema, type LoginInput } from '../data/schemas';
 import { FormInput, FormPasswordInput, FormButton, OAuthButton } from 'app/components/ui';
-import { AuthLayout } from 'app/components/layout/auth-layout';
+import { AuthFooterLink, AuthLayout } from 'app/components/layout/auth-layout';
 
 interface LoginViewProps {
   onSubmit: (data: LoginInput) => void | Promise<void>;
@@ -33,31 +33,30 @@ export function LoginView({ onSubmit, isLoading = false, error, successMessage }
   };
 
   return (
-    <AuthLayout title="Log in to your Account" subtitle="Welcome back, please enter your details.">
-      {/* Google Sign In */}
-      <OAuthButton provider="google" action="signin" />
+    <AuthLayout title="Sign in" subtitle="Email and password, or Google.">
+      <Stack gap="sm">
+        <OAuthButton provider="google" action="signin" type="button" />
 
-      {/* Divider */}
-      <Divider label="OR" labelPosition="center" />
+        <Divider
+          label="or"
+          labelPosition="center"
+          size="xs"
+          styles={{ label: { textTransform: 'lowercase', fontSize: '0.75rem' } }}
+        />
 
-      {/* Form */}
-      <form onSubmit={handleSubmit(handleFormSubmit)}>
-        <Stack gap="md">
-          {successMessage && (
-            <Paper p="xs" bg="green.0" c="green.6" style={{ border: '1px solid #bbf7d0' }}>
-              <Text size="sm" ta="center">
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
+          <Stack gap="sm">
+            {successMessage && (
+              <Alert color="green" variant="light" radius="md">
                 {successMessage}
-              </Text>
-            </Paper>
-          )}
+              </Alert>
+            )}
 
-          {error && (
-            <Paper p="xs" bg="red.0" c="red.6" style={{ border: '1px solid #fecaca' }}>
-              <Text size="sm" ta="center">
+            {error && (
+              <Alert color="red" variant="light" radius="md">
                 {error}
-              </Text>
-            </Paper>
-          )}
+              </Alert>
+            )}
 
           <Controller
             name="email"
@@ -87,26 +86,21 @@ export function LoginView({ onSubmit, isLoading = false, error, successMessage }
             )}
           />
 
-          <Group justify="space-between" mt="xs">
-            <Checkbox label="Remember me" size="sm" />
-            <Anchor component={Link} href="/auth/forgot-password" size="sm" c="blue.6">
-              Forgot Password?
-            </Anchor>
-          </Group>
+            <Group justify="space-between" gap="xs" wrap="nowrap">
+              <Checkbox label="Remember me" size="xs" />
+              <Anchor component={Link} href="/auth/forgot-password" size="xs" c="dimmed" underline="hover">
+                Forgot password?
+              </Anchor>
+            </Group>
 
-          <FormButton type="submit" variant="primary" fullWidth loading={isLoading} mt="md">
-            {isLoading ? 'Signing in...' : 'Log in'}
-          </FormButton>
-        </Stack>
-      </form>
+            <FormButton type="submit" variant="primary" fullWidth loading={isLoading} mt="xs">
+              {isLoading ? 'Signing in…' : 'Sign in'}
+            </FormButton>
+          </Stack>
+        </form>
 
-      {/* Footer */}
-      <Text ta="center" size="sm" c="dimmed">
-        Don't have an account?{' '}
-        <Anchor component={Link} href="/auth/register" fw={500} c="blue.6">
-          Sign Up
-        </Anchor>
-      </Text>
+        <AuthFooterLink prompt="No account?" href="/auth/register" linkLabel="Create one" />
+      </Stack>
     </AuthLayout>
   );
 }
